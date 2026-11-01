@@ -30,6 +30,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/ingredients/{ingredient}', [IngredientController::class, 'show'])->name('ingredients.show');
     Route::put('/ingredients/{ingredient}', [IngredientController::class, 'update'])->name('ingredients.update');
     Route::delete('/ingredients/{ingredient}', [IngredientController::class, 'destroy'])->name('ingredients.destroy');
+    Route::post('/ingredients/{ingredient}/restock', [IngredientController::class, 'restock'])->name('ingredients.restock');
+    Route::get('/ingredients/{ingredient}/history', [IngredientController::class, 'history'])->name('ingredients.history');
     
     // Production Batch routes
     Route::get('/batches', [ProductionBatchController::class, 'index'])->name('batches.index');

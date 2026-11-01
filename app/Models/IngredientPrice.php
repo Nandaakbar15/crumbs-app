@@ -10,6 +10,7 @@ class IngredientPrice extends Model
     protected $fillable = [
         'ingredient_id',
         'supplier_id',
+        'supplier_name',
         'price_per_unit',
         'unit_id',
         'purchase_date',
