@@ -247,7 +247,7 @@
                 return;
             }
 
-            fetch(`{{ route('batches.record-sale', '') }}/${batchId}`, {
+            fetch(`/batches/${batchId}/record-sale`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

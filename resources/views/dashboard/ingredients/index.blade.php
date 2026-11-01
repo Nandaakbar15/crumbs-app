@@ -7,6 +7,23 @@
         <p class="text-[#8B6F47]">Semua stok dan harga bahan diatur dalam satuan dasar (gram, ml, pcs) dan diskonversi otomatis.</p>
     </div>
 
+    @if ($errors->any())
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <strong class="font-bold">Gagal menyimpan bahan:</strong>
+            <ul class="mt-1 list-disc list-inside text-sm">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6">
+            {{ session('success') }}
+        </div>
+    @endif
+
     <!-- Search and Filters -->
     <div class="bg-white rounded-xl border border-[#E8DCC8] p-6 shadow-sm mb-6">
         <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-6">
@@ -195,7 +212,12 @@
                 <!-- Supplier -->
                 <div>
                     <label class="block text-sm font-medium text-[#3E2723] mb-2">Supplier / tempat beli <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
-                    <input type="text" name="supplier_id" placeholder="..." class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                    <select name="supplier_id" class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <option value="">-- Pilih Supplier --</option>
+                        @foreach ($suppliers as $supplier)
+                            <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <!-- Buttons -->
@@ -218,8 +240,9 @@
             btn.classList.add('border-[#D4A574]', 'bg-[#D4A574]', 'text-white');
             
             document.getElementById('selectedUnit').textContent = unit;
-            const unitMap = { 'g': 1, 'ml': 2, 'pcs': 3 };
-            document.getElementById('baseUnitId').value = unitMap[unit] || 1;
+            // Unit IDs match the seeder: gram=1, ml=3, pcs=5
+            const unitMap = { 'g': {{ $units->firstWhere('code', 'gram')?->id ?? 1 }}, 'ml': {{ $units->firstWhere('code', 'ml')?->id ?? 3 }}, 'pcs': {{ $units->firstWhere('code', 'pcs')?->id ?? 5 }} };
+            document.getElementById('baseUnitId').value = unitMap[unit] || {{ $units->firstWhere('code', 'gram')?->id ?? 1 }};
         }
 
         function openAddModal() {
@@ -229,7 +252,7 @@
             document.getElementById('ingredientId').value = '';
             document.getElementById('formMethod').value = 'POST';
             document.getElementById('modalTitle').textContent = 'Tambah Bahan';
-            document.getElementById('baseUnitId').value = '1';
+            document.getElementById('baseUnitId').value = '{{ $units->firstWhere('code', 'gram')?->id ?? 1 }}';
             document.getElementById('selectedUnit').textContent = 'g';
 
             // Reset unit buttons
@@ -263,7 +286,11 @@
                     document.querySelector('input[name="minimum_threshold"]').value = data.minimum_threshold;
                     document.querySelector('select[name="current_unit_id"]').value = data.current_unit_id;
 
-                    const unitMap = { 1: 'g', 2: 'ml', 3: 'pcs' };
+                    if (document.querySelector('select[name="supplier_id"]')) {
+                        document.querySelector('select[name="supplier_id"]').value = data.supplier_id ?? '';
+                    }
+
+                    const unitMap = { {{ $units->firstWhere('code', 'gram')?->id ?? 1 }}: 'g', {{ $units->firstWhere('code', 'ml')?->id ?? 3 }}: 'ml', {{ $units->firstWhere('code', 'pcs')?->id ?? 5 }}: 'pcs' };
                     const unitCode = unitMap[data.base_unit_id] || 'g';
                     document.getElementById('baseUnitId').value = data.base_unit_id;
                     document.getElementById('selectedUnit').textContent = unitCode;
