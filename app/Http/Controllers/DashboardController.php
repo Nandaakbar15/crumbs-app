@@ -6,6 +6,7 @@ use App\Models\Ingredient;
 use App\Models\ProductionBatch;
 use App\Models\WasteLog;
 use App\Models\Product;
+use App\Models\Recipe;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -56,6 +57,22 @@ class DashboardController extends Controller
             ->take(3)
             ->get();
 
+        // Get recipes with HPP data for chart
+        $hppChartData = Recipe::with(['ingredients.ingredient.prices', 'yieldUnit'])
+            ->where('is_active', true)
+            ->get()
+            ->map(function ($recipe) {
+                $hpp = $recipe->getLatestHPP();
+                return [
+                    'name'          => $recipe->name,
+                    'hpp_per_unit'  => round((float) $hpp->hpp_per_unit, 2),
+                    'selling_price' => round((float) $recipe->selling_price, 2),
+                    'margin'        => round((float) $hpp->margin_percentage, 1),
+                ];
+            })
+            ->filter(fn($r) => $r['selling_price'] > 0)
+            ->values();
+
         return view('dashboard.index', [
             'activeBatches' => $activeBatches,
             'activeBatchesList' => $activeBatchesList,
@@ -65,6 +82,7 @@ class DashboardController extends Controller
             'totalWasteAmount' => $totalWasteAmount,
             'wasteQuantity' => $wasteQuantity,
             'topMarginProducts' => $topMarginProducts,
+            'hppChartData' => $hppChartData,
         ]);
     }
 }

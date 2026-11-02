@@ -44,7 +44,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/recipes', [ReceipeHppController::class, 'store'])->name('recipes.store');
     Route::get('/recipes/{recipe}', [ReceipeHppController::class, 'show'])->name('recipes.show');
     Route::put('/recipes/{recipe}', [ReceipeHppController::class, 'update'])->name('recipes.update');
-    Route::delete('/recipes/{recipe}', [ReceipeHppController::class, 'delete']);
+    Route::delete('/recipes/{recipe}', [ReceipeHppController::class, 'delete'])->name('recipes.destroy');
     
     // Shopping List routes
     Route::get('/shopping-lists', [DaftarBelanjaController::class, 'index'])->name('shopping-lists.index');

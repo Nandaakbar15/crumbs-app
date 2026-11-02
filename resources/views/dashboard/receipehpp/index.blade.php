@@ -78,7 +78,7 @@
                             <button onclick="viewRecipe({{ $recipe->id }})" class="flex-1 px-3 py-2 rounded-lg border border-[#E8DCC8] text-[#8B6F47] text-sm font-medium hover:bg-[#FAF8F3] transition">
                                 Lihat
                             </button>
-                            <form action="/receipe/{{ $recipe->id }}" method="post">
+                            <form action="/recipes/{{ $recipe->id }}" method="post">
                                 @csrf
                                 @METHOD('DELETE')
                                 <button class="rounded-lg shadow-lg text-white bg-red-500 hover:bg-red-700 px-4 py-2">Hapus</button>

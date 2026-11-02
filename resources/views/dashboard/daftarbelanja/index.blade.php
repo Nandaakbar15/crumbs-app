@@ -27,26 +27,28 @@
             <div class="flex-1">
                 <label class="block text-sm font-medium text-[#3E2723] mb-2">BATCH PERSIAPAN BELANJA</label>
                 <div class="flex gap-2">
-                    <select id="batchSelect" class="flex-1 px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]" onchange="loadBatchItems()">
-                        <option value="">-- Pilih batch --</option>
-                        @foreach ($productionBatches as $batch)
-                            <option value="{{ $batch->id }}">
-                                {{ $batch->productionBatch->batch_code ?? $batch->batch_code }} - {{ $batch->recipe->name }}
+                    <select id="batchSelect" class="flex-1 px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]" onchange="filterByBatch(this.value)">
+                        <option value="">-- Tampilkan semua --</option>
+                        @foreach ($batchesWithLists as $batch)
+                            <option value="{{ $batch->id }}" {{ $selectedBatchId == $batch->id ? 'selected' : '' }}>
+                                {{ $batch->batch_code }} - {{ $batch->recipe->name ?? 'N/A' }}
                             </option>
                         @endforeach
                     </select>
-                    <button onclick="openCreateModal()" class="px-4 py-2 rounded-lg bg-[#D4A574] text-white font-medium hover:bg-opacity-90 transition">+</button>
-                    <button class="px-4 py-2 rounded-lg border-2 border-[#D4A574] text-[#D4A574] font-medium">−</button>
-                    <button class="px-4 py-2 rounded-lg border-2 border-[#D4A574] text-[#D4A574] font-medium">🔄</button>
+                    <button onclick="openCreateModal()" title="Buat daftar belanja baru" class="px-4 py-2 rounded-lg bg-[#D4A574] text-white font-medium hover:bg-opacity-90 transition">+</button>
+                    <button onclick="resetFilter()" title="Tampilkan semua" class="px-4 py-2 rounded-lg border-2 border-[#D4A574] text-[#D4A574] font-medium hover:bg-[#F5DEB3] transition">🔄</button>
                 </div>
+                @if ($selectedBatchId)
+                    <p class="text-xs text-[#D4A574] mt-1">Menampilkan daftar belanja untuk batch yang dipilih. <a href="{{ route('shopping-lists.index') }}" class="underline">Tampilkan semua</a></p>
+                @endif
             </div>
 
             <!-- Total Estimate Box -->
             <div class="bg-[#3E2723] rounded-lg p-4 text-white min-w-[320px]">
                 <p class="text-sm uppercase tracking-wide mb-2">TOTAL ESTIMASI BELANJA</p>
-                <p class="text-4xl font-bold mb-2" id="totalEstimate">Rp 0</p>
+                <p class="text-4xl font-bold mb-2" id="totalEstimate">Rp {{ number_format($shoppingLists->sum('total_estimated_cost'), 0, ',', '.') }}</p>
                 <p class="text-xs opacity-90">
-                    <span id="totalItems" class="font-semibold">0 item</span> per dibeli · 
+                    <span id="totalItems" class="font-semibold">{{ $shoppingLists->sum(fn($l) => $l->items->count()) }} item</span> per dibeli ·
                     <span id="totalBought" class="font-semibold">0 contang</span>
                 </p>
             </div>
@@ -68,7 +70,7 @@
                         <span class="inline-block px-2 py-1 rounded text-xs font-semibold 
                             @if ($list->status === 'pending') bg-[#F4C430] bg-opacity-20 text-[#F4C430]
                             @elseif ($list->status === 'completed') bg-[#6B9E77] bg-opacity-20 text-[#6B9E77]
-                            @else bg-[#C85A54] bg-opacity-20 text-[#C85A54]
+                            @else bg-[#C85A54] bg-opacity-20 text-white
                             @endif
                         ">
                             {{ ucfirst($list->status) }}
@@ -133,49 +135,11 @@
     @endif
 
     <!-- Create Shopping List Modal -->
-    <style>
-        @keyframes slideDownFrom {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInOverlay {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        .modal-overlay-show {
-            animation: fadeInOverlay 0.3s ease-out;
-        }
-
-        .modal-content-show {
-            animation: slideDownFrom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .modal-overlay-hide {
-            animation: fadeInOverlay 0.3s ease-out reverse;
-        }
-
-        .modal-content-hide {
-            animation: slideDownFrom 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) reverse;
-        }
-    </style>
-
-    <div id="createModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white rounded-xl max-w-4xl w-full p-6 modal-content max-h-[90vh] overflow-y-auto">
+    <div id="createModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-xl font-bold text-[#3E2723]">Buat Daftar Belanja Baru</h2>
-                <button onclick="closeCreateModal()" class="text-[#8B6F47] hover:text-[#3E2723]">✕</button>
+                <button type="button" onclick="closeCreateModal()" class="text-[#8B6F47] hover:text-[#3E2723] text-2xl leading-none">&times;</button>
             </div>
 
             <form id="shoppingListForm" action="{{ route('shopping-lists.store') }}" method="POST" class="space-y-4">
@@ -239,31 +203,11 @@
             itemCount = 0;
             document.getElementById('shoppingItems').innerHTML = '';
             addShoppingItem();
-
-            const modal = document.getElementById('createModal');
-            const overlay = modal.querySelector('.modal-overlay');
-            const content = modal.querySelector('.modal-content');
-            
-            modal.classList.remove('hidden');
-            overlay.classList.add('modal-overlay-show');
-            content.classList.add('modal-content-show');
+            document.getElementById('createModal').classList.remove('hidden');
         }
 
         function closeCreateModal() {
-            const modal = document.getElementById('createModal');
-            const overlay = modal.querySelector('.modal-overlay');
-            const content = modal.querySelector('.modal-content');
-            
-            overlay.classList.remove('modal-overlay-show');
-            overlay.classList.add('modal-overlay-hide');
-            content.classList.remove('modal-content-show');
-            content.classList.add('modal-content-hide');
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                overlay.classList.remove('modal-overlay-hide');
-                content.classList.remove('modal-content-hide');
-            }, 300);
+            document.getElementById('createModal').classList.add('hidden');
         }
 
         function addShoppingItem() {
@@ -311,9 +255,16 @@
             btn.closest('tr').remove();
         }
 
-        function loadBatchItems() {
-            // Placeholder for loading batch items
-            alert('Feature coming soon');
+        function filterByBatch(batchId) {
+            if (batchId) {
+                window.location.href = `{{ route('shopping-lists.index') }}?batch_id=${batchId}`;
+            } else {
+                window.location.href = `{{ route('shopping-lists.index') }}`;
+            }
+        }
+
+        function resetFilter() {
+            window.location.href = `{{ route('shopping-lists.index') }}`;
         }
 
         function shareViaWhatsapp() {
@@ -335,30 +286,11 @@
         }
 
         function updateSummary() {
-            // Calculate totals from all shopping lists
-            let totalCost = 0;
-            let totalItems = 0;
+            // Hitung jumlah item yang sudah dicentang
             let totalBought = 0;
-
-            // Sum from all visible shopping list items
-            document.querySelectorAll('tbody tr').forEach(row => {
-                const estimasiCell = row.querySelector('td:last-child');
-                if (estimasiCell) {
-                    const estimasiText = estimasiCell.textContent.replace('Rp ', '').replace(/\./g, '');
-                    totalCost += parseInt(estimasiText) || 0;
-                    totalItems++;
-                }
-
-                // Check if checkbox is checked
-                const checkbox = row.querySelector('input[type="checkbox"]');
-                if (checkbox && checkbox.checked) {
-                    totalBought++;
-                }
+            document.querySelectorAll('tbody input[type="checkbox"]').forEach(checkbox => {
+                if (checkbox.checked) totalBought++;
             });
-
-            // Update display
-            document.getElementById('totalEstimate').textContent = 'Rp ' + totalCost.toLocaleString('id-ID');
-            document.getElementById('totalItems').textContent = totalItems + ' item';
             document.getElementById('totalBought').textContent = totalBought + ' contang';
         }
 
@@ -372,14 +304,9 @@
             });
         });
 
-        // Close modal when clicking outside
-        const createModal = document.getElementById('createModal');
-        if (createModal) {
-            createModal.addEventListener('click', function(e) {
-                if (e.target === this || e.target.classList.contains('modal-overlay')) {
-                    closeCreateModal();
-                }
-            });
-        }
+        // Close modal when clicking backdrop
+        document.getElementById('createModal').addEventListener('click', function(e) {
+            if (e.target === this) closeCreateModal();
+        });
     </script>
 @endsection

@@ -98,25 +98,108 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- HPP vs Harga Jual per pcs -->
         <div class="bg-white rounded-xl border border-[#E8DCC8] p-6 shadow-sm">
-            <h2 class="text-lg font-bold text-[#3E2723] mb-6">HPP vs Harga Jual per pcs</h2>
-            <div class="space-y-4">
-                @if ($topMarginProducts->count() > 0)
-                    @foreach ($topMarginProducts->take(3) as $product)
-                        <div class="flex items-center justify-between pb-4 border-b border-[#E8DCC8] last:border-0">
-                            <div>
-                                <p class="font-medium text-[#3E2723]">{{ $product->name }}</p>
-                                <p class="text-xs text-[#8B6F47]">HPP: Rp {{ number_format($product->getLatestHPP()?->hpp_per_unit ?? 0, 0, ',', '.') }}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold text-[#3E2723]">Rp {{ number_format($product->selling_price, 0, ',', '.') }}</p>
-                                <p class="text-xs text-[#6B9E77] font-medium">{{ $product->getLatestHPP()?->margin_percentage ?? 0 }}%</p>
-                            </div>
-                        </div>
+            <h2 class="text-lg font-bold text-[#3E2723] mb-4">HPP vs Harga Jual per pcs</h2>
+
+            @if ($hppChartData->count() > 0)
+                <div class="relative" style="height: 220px;">
+                    <canvas id="hppChart"></canvas>
+                </div>
+
+                <!-- Legend & margin summary below chart -->
+                <div class="mt-4 flex flex-wrap gap-2">
+                    @foreach ($hppChartData as $item)
+                        <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#FAF8F3] border border-[#E8DCC8] text-xs text-[#3E2723]">
+                            <span class="font-medium">{{ $item['name'] }}:</span>
+                            <span class="text-[#6B9E77] font-semibold">{{ $item['margin'] }}%</span>
+                        </span>
                     @endforeach
-                @else
-                    <p class="text-center py-8 text-[#8B6F47]">Tidak ada produk</p>
-                @endif
-            </div>
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const labels  = @json($hppChartData->pluck('name'));
+                        const hppData = @json($hppChartData->pluck('hpp_per_unit'));
+                        const spData  = @json($hppChartData->pluck('selling_price'));
+
+                        const ctx = document.getElementById('hppChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [
+                                    {
+                                        label: 'HPP / pcs',
+                                        data: hppData,
+                                        backgroundColor: '#C85A54',
+                                        borderRadius: 6,
+                                        barPercentage: 0.5,
+                                        categoryPercentage: 0.6,
+                                    },
+                                    {
+                                        label: 'Harga jual / pcs',
+                                        data: spData,
+                                        backgroundColor: '#D4A574',
+                                        borderRadius: 6,
+                                        barPercentage: 0.5,
+                                        categoryPercentage: 0.6,
+                                    },
+                                ],
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false,
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            boxWidth: 12,
+                                            padding: 12,
+                                            font: { size: 11 },
+                                            color: '#8B6F47',
+                                        },
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function (ctx) {
+                                                return ` ${ctx.dataset.label}: Rp ${Number(ctx.raw).toLocaleString('id-ID')}`;
+                                            },
+                                        },
+                                    },
+                                },
+                                scales: {
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: '#8B6F47', font: { size: 11 } },
+                                    },
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: { color: '#F0EDE6' },
+                                        ticks: {
+                                            color: '#8B6F47',
+                                            font: { size: 10 },
+                                            callback: function (val) {
+                                                return val >= 1000
+                                                    ? 'Rp ' + (val / 1000).toFixed(0) + 'k'
+                                                    : 'Rp ' + val;
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        });
+                    });
+                </script>
+            @else
+                <div class="flex flex-col items-center justify-center py-12 text-[#8B6F47]">
+                    <span class="text-3xl mb-2">📊</span>
+                    <p class="text-sm">Belum ada resep dengan harga jual</p>
+                    <a href="{{ route('recipes.index') }}" class="mt-3 text-xs text-[#D4A574] hover:underline font-semibold">Tambah resep →</a>
+                </div>
+            @endif
         </div>
 
         <!-- Peringatan Stok -->

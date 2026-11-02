@@ -128,4 +128,12 @@ class ReceipeHppController extends Controller
         return redirect()->route('recipes.index')
             ->with('success', 'Resep berhasil diperbarui');
     }
+
+    public function delete(Recipe $recipe)
+    {
+        $recipe->update(['is_active' => false]);
+
+        return redirect()->route('recipes.index')
+               ->with('success', 'Resep berhasil dihapus!');
+    }
 }

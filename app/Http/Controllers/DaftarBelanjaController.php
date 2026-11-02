@@ -11,16 +11,28 @@ use App\Models\Supplier;
 
 class DaftarBelanjaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Get all shopping lists with their items
-        $shoppingLists = ShoppingList::with(['productionBatch.recipe', 'items.ingredient', 'items.unit', 'items.supplier'])
-            ->orderBy('created_at', 'desc')
+        $selectedBatchId = $request->query('batch_id');
+
+        // Get shopping lists, filtered by batch if selected
+        $query = ShoppingList::with(['productionBatch.recipe', 'items.ingredient', 'items.unit', 'items.supplier'])
+            ->orderBy('created_at', 'desc');
+
+        if ($selectedBatchId) {
+            $query->where('production_batch_id', $selectedBatchId);
+        }
+
+        $shoppingLists = $query->get();
+
+        // Get all batches that have a shopping list (for the filter dropdown)
+        $batchesWithLists = ProductionBatch::with('recipe')
+            ->whereHas('shoppingList')
+            ->orderBy('production_date', 'desc')
             ->get();
 
         // Get active batches for creating new shopping list
         $productionBatches = ProductionBatch::with('recipe', 'producedUnit')
-            ->where('status', 'planned')
             ->orderBy('production_date', 'desc')
             ->get();
 
@@ -29,11 +41,13 @@ class DaftarBelanjaController extends Controller
         $suppliers = Supplier::all();
 
         return view('dashboard.daftarbelanja.index', [
-            'shoppingLists' => $shoppingLists,
+            'shoppingLists'     => $shoppingLists,
+            'batchesWithLists'  => $batchesWithLists,
             'productionBatches' => $productionBatches,
-            'ingredients' => $ingredients,
-            'units' => $units,
-            'suppliers' => $suppliers,
+            'selectedBatchId'   => $selectedBatchId,
+            'ingredients'       => $ingredients,
+            'units'             => $units,
+            'suppliers'         => $suppliers,
         ]);
     }
 
@@ -70,8 +84,8 @@ class DaftarBelanjaController extends Controller
                 'unit_id' => $item['unit_id'],
                 'estimated_price_per_unit' => $item['estimated_price_per_unit'],
                 'total_estimated_cost' => $itemTotalCost,
-                'supplier_id' => $item['supplier_id'],
-                'notes' => $item['notes'],
+                'supplier_id' => $item['supplier_id'] ?? null,
+                'notes'       => $item['notes'] ?? null,
             ]);
         }
 
