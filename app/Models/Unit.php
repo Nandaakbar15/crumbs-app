@@ -25,6 +25,34 @@ class Unit extends Model
         return $this->hasMany(Ingredient::class, 'base_unit_id');
     }
 
+    /**
+     * Convert a quantity FROM this unit TO the ingredient's base unit.
+     * e.g. 2 kg -> 2000 gram (factor=1000), 1 dozen -> 12 pcs (factor=12)
+     */
+    public function toBaseUnit(float $quantity): float
+    {
+        return $quantity * (float) $this->conversion_factor;
+    }
+
+    /**
+     * Convert a quantity FROM the base unit TO this unit.
+     * e.g. 2000 gram -> 2 kg
+     */
+    public function fromBaseUnit(float $quantity): float
+    {
+        $factor = (float) $this->conversion_factor;
+        return $factor > 0 ? $quantity / $factor : $quantity;
+    }
+
+    /**
+     * Whether this unit is the same "category family" as another unit.
+     * Prevents converting kg to ml, for example.
+     */
+    public function isSameCategory(Unit $other): bool
+    {
+        return $this->category === $other->category;
+    }
+
     public function recipeIngredients(): HasMany
     {
         return $this->hasMany(RecipeIngredient::class);

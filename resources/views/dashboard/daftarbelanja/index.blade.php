@@ -20,6 +20,47 @@
         </div>
     </div>
 
+    @if (session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6 text-sm">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('info'))
+        <div class="bg-blue-50 border border-blue-300 text-blue-700 px-4 py-3 rounded-lg mb-6 text-sm">
+            {{ session('info') }}
+        </div>
+    @endif
+
+    @php
+        $criticalCount = \App\Models\Ingredient::where('is_active', true)->get()->filter(fn($i) => $i->isCritical())->count();
+        $lowCount      = \App\Models\Ingredient::where('is_active', true)->get()->filter(fn($i) => $i->isLow() && !$i->isCritical())->count();
+    @endphp
+
+    @if ($criticalCount > 0 || $lowCount > 0)
+        <div class="bg-[#FFF5F5] border border-[#C85A54] rounded-xl px-5 py-4 mb-6 flex items-center justify-between gap-4">
+            <div>
+                <p class="font-semibold text-[#C85A54] text-sm">
+                    ⚠️ Ada
+                    @if ($criticalCount > 0)
+                        <span class="font-bold">{{ $criticalCount }} bahan kritis</span>
+                    @endif
+                    @if ($criticalCount > 0 && $lowCount > 0) dan @endif
+                    @if ($lowCount > 0)
+                        <span class="font-bold">{{ $lowCount }} bahan menipis</span>
+                    @endif
+                </p>
+                <p class="text-xs text-[#8B6F47] mt-0.5">Buat daftar belanja otomatis dari bahan-bahan ini beserta resep yang memakainya.</p>
+            </div>
+            <form action="{{ route('shopping-lists.from-critical') }}" method="POST">
+                @csrf
+                <button type="submit"
+                    class="px-4 py-2 rounded-lg bg-[#C85A54] text-white text-sm font-semibold hover:bg-opacity-90 transition whitespace-nowrap">
+                    🛒 Buat dari Stok Kritis
+                </button>
+            </form>
+        </div>
+    @endif
+
     <!-- Batch Selection & Summary -->
     <div class="bg-white rounded-xl border border-[#E8DCC8] p-6 shadow-sm mb-6">
         <div class="flex items-end gap-4 mb-6">
@@ -58,23 +99,41 @@
     <!-- Shopping Lists -->
     @if ($shoppingLists->count() > 0)
         @foreach ($shoppingLists as $list)
-            <div class="bg-white rounded-xl border border-[#E8DCC8] shadow-sm mb-6 overflow-hidden">
+            <div class="bg-white rounded-xl border border-[#E8DCC8] shadow-sm mb-6 overflow-hidden" data-list-id="{{ $list->id }}" data-item-count="{{ $list->items->count() }}" data-total-cost="{{ $list->total_estimated_cost }}">
                 <!-- List Header -->
                 <div class="bg-[#FAF8F3] border-b border-[#E8DCC8] px-6 py-3 flex items-center justify-between">
                     <div class="flex-1">
                         <p class="font-semibold text-[#3E2723]">{{ $list->shopping_list_code }}</p>
-                        <p class="text-xs text-[#8B6F47]">{{ $list->productionBatch->recipe->name ?? 'N/A' }} • {{ $list->productionBatch->batch_code ?? 'N/A' }}</p>
+                        @if ($list->productionBatch)
+                            <p class="text-xs text-[#8B6F47]">{{ $list->productionBatch->recipe->name ?? 'N/A' }} • {{ $list->productionBatch->batch_code ?? 'N/A' }}</p>
+                        @else
+                            <p class="text-xs text-[#C85A54] font-medium">🛒 Dari Stok Kritis</p>
+                        @endif
                     </div>
-                    <div class="text-right">
-                        <p class="font-bold text-[#3E2723]">Rp {{ number_format($list->total_estimated_cost, 0, ',', '.') }}</p>
-                        <span class="inline-block px-2 py-1 rounded text-xs font-semibold 
-                            @if ($list->status === 'pending') bg-[#F4C430] bg-opacity-20 text-[#F4C430]
-                            @elseif ($list->status === 'completed') bg-[#6B9E77] bg-opacity-20 text-[#6B9E77]
-                            @else bg-[#C85A54] bg-opacity-20 text-white
-                            @endif
-                        ">
-                            {{ ucfirst($list->status) }}
-                        </span>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <p class="font-bold text-[#3E2723]">Rp {{ number_format($list->total_estimated_cost, 0, ',', '.') }}</p>
+                            <span class="inline-block px-2 py-1 rounded text-xs font-semibold 
+                                @if ($list->status === 'pending') bg-[#F4C430] bg-opacity-20 text-[#F4C430]
+                                @elseif ($list->status === 'completed') bg-[#6B9E77] bg-opacity-20 text-[#6B9E77]
+                                @else bg-[#C85A54] bg-opacity-20 text-white
+                                @endif
+                            ">
+                                {{ ucfirst($list->status) }}
+                            </span>
+                        </div>
+                        <form action="{{ route('shopping-lists.destroy', $list) }}" method="POST"
+                            onsubmit="return confirm('Hapus daftar belanja ' + '{{ $list->shopping_list_code }}' + '?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"
+                                class="p-2 rounded-lg text-[#C85A54] hover:bg-[#FFF5F5] transition"
+                                title="Hapus daftar belanja">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </form>
                     </div>
                 </div>
 
@@ -84,6 +143,7 @@
                         <thead class="bg-[#FAF8F3] border-b border-[#E8DCC8]">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-[#3E2723]">Bahan</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-[#3E2723]">Resep Terkait</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-[#3E2723]">Supplier / Tempat Beli</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-[#3E2723]">Stok</th>
                                 <th class="px-6 py-3 text-left text-xs font-semibold text-[#3E2723]">Kebutuhan</th>
@@ -99,19 +159,28 @@
                                         <p class="font-medium text-[#3E2723]">{{ $item->ingredient->name }}</p>
                                         <p class="text-xs text-[#8B6F47]">{{ $item->ingredient->baseUnit->code ?? 'unit' }}</p>
                                     </td>
+                                    <td class="px-6 py-4 text-xs text-[#8B6F47]">
+                                        @if ($item->notes && str_starts_with($item->notes, 'Dipakai di:'))
+                                            <span class="text-[#D4A574]">{{ str_replace('Dipakai di: ', '', $item->notes) }}</span>
+                                        @elseif ($item->notes)
+                                            {{ $item->notes }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-[#8B6F47]">
-                                        {{ $item->supplier->name ?? '-' }}
+                                        {{ $item->ingredient->getLatestPrice()?->store_name ?? '-' }}
                                     </td>
                                     <td class="px-6 py-4">
                                         <p class="font-medium text-[#3E2723]">{{ number_format($item->ingredient->current_stock, 0) }}</p>
                                         <p class="text-xs text-[#8B6F47]">{{ $item->ingredient->currentUnit->code ?? 'unit' }}</p>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="font-medium text-[#3E2723]">{{ number_format($item->quantity_needed, 2) }}</p>
+                                        <p class="font-medium text-[#3E2723]">{{ number_format($item->quantity_needed, 0) }}</p>
                                         <p class="text-xs text-[#8B6F47]">{{ $item->unit->code ?? 'unit' }}</p>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <input type="checkbox" class="w-4 h-4 rounded border-[#D4A574] text-[#D4A574] focus:ring-0">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-[#D4A574] text-[#D4A574] focus:ring-0 item-checkbox" data-list="{{ $list->id }}">
                                     </td>
                                     <td class="px-6 py-4 text-sm text-[#D4A574] font-medium">
                                         Rp {{ number_format($item->estimated_price_per_unit, 0, ',', '.') }}
@@ -286,21 +355,62 @@
         }
 
         function updateSummary() {
-            // Hitung jumlah item yang sudah dicentang
             let totalBought = 0;
-            document.querySelectorAll('tbody input[type="checkbox"]').forEach(checkbox => {
-                if (checkbox.checked) totalBought++;
+            document.querySelectorAll('.item-checkbox').forEach(cb => {
+                if (cb.checked) totalBought++;
             });
             document.getElementById('totalBought').textContent = totalBought + ' contang';
+        }
+
+        function checkListCompletion(listId) {
+            const card = document.querySelector('[data-list-id="' + listId + '"]');
+            if (!card) return;
+            const checkboxes = card.querySelectorAll('.item-checkbox');
+            if (checkboxes.length === 0) return;
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            if (allChecked) {
+                card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.97)';
+                setTimeout(() => {
+                    card.style.display = 'none';
+                    // Recalculate total from visible cards
+                    recalculateTotalEstimate();
+                }, 400);
+            } else {
+                card.style.display = '';
+                card.style.opacity = '1';
+                card.style.transform = '';
+                recalculateTotalEstimate();
+            }
+        }
+
+        function recalculateTotalEstimate() {
+            // Sum total_estimated_cost from all visible shopping list cards
+            let total = 0;
+            let itemCount = 0;
+            document.querySelectorAll('[data-list-id]').forEach(card => {
+                if (card.style.display !== 'none') {
+                    const cost = parseFloat(card.dataset.totalCost || 0);
+                    total += cost;
+                    itemCount += card.querySelectorAll('.item-checkbox').length;
+                }
+            });
+            const formatted = 'Rp ' + total.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+            document.getElementById('totalEstimate').textContent = formatted;
+            document.getElementById('totalItems').textContent = itemCount + ' item';
         }
 
         // Update summary on page load
         document.addEventListener('DOMContentLoaded', function() {
             updateSummary();
-            
+
             // Add event listener to checkboxes
-            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', updateSummary);
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateSummary();
+                    checkListCompletion(this.dataset.list);
+                });
             });
         });
 

@@ -332,11 +332,16 @@
                     <td class="px-3 py-2 border-b border-[#E8DCC8]">
                         <select name="ingredients[${ingredientCount}][ingredient_id]" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm ingredient-price" onchange="calculateHPP()">
                             <option value="">-- Pilih bahan --</option>
+                            @foreach ($ingredients as $ingredient)
+                            <option value="{{ $ingredient->id }}">{{ $ingredient->name }} ({{ $ingredient->baseUnit->code ?? 'unit' }})</option>
+                            @endforeach
                         </select>
                     </td>
                     <td class="px-3 py-2 border-b border-[#E8DCC8]">
                         <select name="ingredients[${ingredientCount}][unit_id]" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm">
-                            <option value="">gram</option>
+                            @foreach ($units as $unit)
+                            <option value="{{ $unit->id }}">{{ $unit->code }}</option>
+                            @endforeach
                         </select>
                     </td>
                     <td class="px-3 py-2 border-b border-[#E8DCC8]">

@@ -75,7 +75,7 @@
 
                 <div class="space-y-4">
                     @forelse ($recentBatches as $batch)
-                        <div class="border-b border-[#E8DCC8] pb-4 last:border-0">
+                        <div id="batch-row-{{ $batch->id }}" class="border-b border-[#E8DCC8] pb-4 last:border-0">
                             <div class="flex items-start justify-between mb-3">
                                 <div>
                                     <h3 class="font-semibold text-[#3E2723]">{{ $batch->recipe->name ?? 'Unknown Recipe' }}</h3>
@@ -90,6 +90,8 @@
                                 <span class="text-[#8B6F47]">dari {{ $batch->produced_quantity }} pcs</span>
                                 
                                 <button onclick="recordSale({{ $batch->id }})" class="px-3 py-1 rounded-lg bg-[#6B9E77] text-white text-xs font-semibold hover:opacity-90 transition">Simpan</button>
+                                <button onclick="deleteBatch({{ $batch->id }}, '{{ addslashes($batch->batch_code) }}')" class="px-3 py-1 rounded-lg bg-[#C85A54] text-white text-xs font-semibold hover:opacity-90 transition">Hapus</button>
+                                
 
                                 @if($batch->quantity_sold > 0)
                                     <div class="ml-auto text-right">
@@ -271,6 +273,41 @@
                     location.reload();
                 } else {
                     alert('Gagal mencatat penjualan: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error: ' + err.message);
+            });
+        }
+
+        // Delete Batch Function
+        function deleteBatch(batchId, batchCode) {
+            if (!confirm(`Hapus batch ${batchCode}?\n\nData penjualan batch ini akan dihapus dan tidak akan muncul lagi di laporan.`)) {
+                return;
+            }
+
+            fetch(`/batches/${batchId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Hapus baris dari DOM tanpa reload
+                    const row = document.getElementById(`batch-row-${batchId}`);
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    alert('Gagal menghapus batch: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(err => {

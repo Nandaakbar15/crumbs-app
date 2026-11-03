@@ -37,6 +37,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/batches', [ProductionBatchController::class, 'index'])->name('batches.index');
     Route::post('/batches', [ProductionBatchController::class, 'store'])->name('batches.store');
     Route::post('/batches/{batch}/record-sale', [ProductionBatchController::class, 'recordSale'])->name('batches.record-sale');
+    Route::delete('/batches/{batch}', [ProductionBatchController::class, 'destroy'])->name('batches.destroy');
     Route::post('/batches/generate-report', [ProductionBatchController::class, 'generateReport'])->name('batches.generate-report');
     
     // Recipe & HPP routes
@@ -48,7 +49,9 @@ Route::middleware(['auth'])->group(function () {
     
     // Shopping List routes
     Route::get('/shopping-lists', [DaftarBelanjaController::class, 'index'])->name('shopping-lists.index');
+    Route::post('/shopping-lists/from-critical', [DaftarBelanjaController::class, 'storeFromCritical'])->name('shopping-lists.from-critical');
     Route::post('/shopping-lists', [DaftarBelanjaController::class, 'store'])->name('shopping-lists.store');
+    Route::delete('/shopping-lists/{shoppingList}', [DaftarBelanjaController::class, 'destroy'])->name('shopping-lists.destroy');
     
     // Waste & Loss routes
     Route::get('/waste-loss', [WasteLossController::class, 'index'])->name('waste-loss.index');

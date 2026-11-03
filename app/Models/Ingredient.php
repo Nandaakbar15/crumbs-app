@@ -11,6 +11,7 @@ class Ingredient extends Model
     protected $fillable = [
         'code',
         'name',
+        'category',
         'base_unit_id',
         'current_stock',
         'current_unit_id',
@@ -82,5 +83,26 @@ class Ingredient extends Model
     public function isLow(): bool
     {
         return $this->current_stock < ($this->minimum_threshold * 1.5);
+    }
+
+    /**
+     * Format a stock value (in base unit) into a human-readable string.
+     * Always displays in the base unit — no automatic promotion to kg/liter.
+     * Returns ['value' => float, 'unit' => string]
+     */
+    public function formatStock(?float $baseQty = null): array
+    {
+        $qty      = $baseQty ?? (float) $this->current_stock;
+        $baseCode = $this->baseUnit?->code ?? 'unit';
+
+        return ['value' => $qty, 'unit' => $baseCode];
+    }
+
+    /**
+     * Format the minimum_threshold the same way as formatStock()
+     */
+    public function formatThreshold(): array
+    {
+        return $this->formatStock((float) $this->minimum_threshold);
     }
 }

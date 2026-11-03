@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ShoppingList;
+use App\Models\ShoppingListItem;
 use App\Models\ProductionBatch;
 use App\Models\Ingredient;
 use App\Models\Unit;
@@ -51,6 +52,82 @@ class DaftarBelanjaController extends Controller
         ]);
     }
 
+    public function storeFromCritical()
+    {
+        // Ambil semua bahan aktif yang kritis atau menipis
+        $criticalIngredients = Ingredient::where('is_active', true)
+            ->with([
+                'baseUnit',
+                'prices' => fn($q) => $q->where('is_active', true)->latest(),
+                'recipeIngredients.recipe',
+            ])
+            ->get()
+            ->filter(fn($i) => $i->isCritical());
+
+        if ($criticalIngredients->isEmpty()) {
+            return redirect()->route('shopping-lists.index')
+                ->with('info', 'Tidak ada bahan kritis saat ini.');
+        }
+
+        // Kumpulkan nama-nama resep yang menggunakan bahan-bahan ini
+        $usedInRecipes = $criticalIngredients
+            ->flatMap(fn($i) => $i->recipeIngredients->pluck('recipe.name'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->implode(', ');
+
+        $code = ShoppingList::generateShoppingListCode();
+
+        $shoppingList = ShoppingList::create([
+            'shopping_list_code'   => $code,
+            'production_batch_id'  => null,
+            'total_estimated_cost' => 0,
+            'status'               => 'draft',
+        ]);
+
+        $totalCost = 0;
+
+        foreach ($criticalIngredients as $ingredient) {
+            // Jumlah yang perlu dibeli = selisih minimum - stok saat ini
+            $deficit = max(0, (float) $ingredient->minimum_threshold - (float) $ingredient->current_stock);
+            // Minimal beli = 1 unit dasar jika deficit = 0 tapi masih menipis
+            $qtyNeeded = $deficit > 0 ? $deficit : (float) $ingredient->minimum_threshold;
+
+            $latestPrice = $ingredient->prices->first();
+            $estimatedPrice = $latestPrice ? (float) $latestPrice->price_per_unit : 0;
+
+            $itemCost = $qtyNeeded * $estimatedPrice;
+            $totalCost += $itemCost;
+
+            // Kumpulkan nama resep untuk notes item ini
+            $recipeNames = $ingredient->recipeIngredients
+                ->pluck('recipe.name')
+                ->filter()
+                ->unique()
+                ->implode(', ');
+
+            $shoppingList->items()->create([
+                'ingredient_id'           => $ingredient->id,
+                'quantity_needed'         => $qtyNeeded,
+                'unit_id'                 => $ingredient->base_unit_id,
+                'estimated_price_per_unit'=> $estimatedPrice,
+                'total_estimated_cost'    => $itemCost,
+                'supplier_id'             => null,
+                'notes'                   => collect(array_filter([
+                    $recipeNames ? "Dipakai di: {$recipeNames}" : null,
+                    $latestPrice?->store_name ? "Beli di: {$latestPrice->store_name}" : null,
+                ]))->implode(' · ') ?: null,
+            ]);
+        }
+
+        $shoppingList->update(['total_estimated_cost' => $totalCost]);
+
+        return redirect()->route('shopping-lists.index')
+            ->with('success', "Daftar belanja stok kritis berhasil dibuat ({$criticalIngredients->count()} bahan)" .
+                ($usedInRecipes ? " — Resep terkait: {$usedInRecipes}" : ''));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -94,5 +171,13 @@ class DaftarBelanjaController extends Controller
 
         return redirect()->route('shopping-lists.index')
             ->with('success', 'Daftar belanja berhasil dibuat');
+    }
+
+    public function destroy(ShoppingList $shoppingList)
+    {
+        $shoppingList->delete();
+
+        return redirect()->route('shopping-lists.index')
+            ->with('success', "Daftar belanja {$shoppingList->shopping_list_code} berhasil dihapus.");
     }
 }

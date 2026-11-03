@@ -77,7 +77,7 @@ class WasteLossController extends Controller
 
         WasteLog::create([
             'ingredient_id' => $validated['ingredient_id'],
-            'production_batch_id' => $validated['production_batch_id'],
+            'production_batch_id' => $validated['production_batch_id'] ?? null,
             'waste_type' => $validated['waste_type'],
             'quantity' => $validated['quantity'],
             'unit_id' => $validated['unit_id'],

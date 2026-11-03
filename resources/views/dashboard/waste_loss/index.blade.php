@@ -61,8 +61,11 @@
 
                     <!-- Catatan Kerugian -->
                     <div>
-                        <label class="block text-xs font-medium text-[#D4A574] uppercase mb-2">Estimasi Kerugian</label>
-                        <p class="text-2xl font-bold text-[#3E2723] mb-3">Rp 0</p>
+                        <label class="block text-xs font-medium text-[#D4A574] uppercase mb-2">Estimasi Kerugian Bulan Ini</label>
+                        @php
+                            $totalBulanIni = ($wasteLogs->sum(fn($w) => $w->getWasteCost())) + ($lossLogs->sum(fn($l) => $l->getWasteCost()));
+                        @endphp
+                        <p class="text-2xl font-bold text-[#3E2723] mb-3">Rp {{ number_format($totalBulanIni, 0, ',', '.') }}</p>
                     </div>
 
                     <!-- Catat Button -->
@@ -73,18 +76,31 @@
                     <!-- Total Breakdown -->
                     <div class="bg-[#FAF8F3] rounded-lg p-4 mt-6">
                         <p class="text-xs uppercase font-semibold text-[#3E2723] mb-3">TOTAL KERUGIAN</p>
-                        <p class="text-3xl font-bold text-[#3E2723] mb-3">Rp 20.250</p>
-                        
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between items-center">
-                                <span class="text-[#8B6F47]">Tumpah/Jatuh di mangkuk</span>
-                                <span class="text-[#D4A574] font-semibold">Rp 5.680</span>
+                        @php
+                            $totalWasteCost = $wasteByReason->sum('total_cost');
+                            $totalLossCost  = $lossByReason->sum('total_cost');
+                            $totalKerugian  = $totalWasteCost + $totalLossCost;
+                        @endphp
+                        <p class="text-3xl font-bold text-[#3E2723] mb-3">Rp {{ number_format($totalKerugian, 0, ',', '.') }}</p>
+
+                        @if ($wasteByReason->count() > 0 || $lossByReason->count() > 0)
+                            <div class="space-y-2 text-sm">
+                                @foreach ($wasteByReason as $item)
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[#8B6F47]">{{ $item['reason'] }}</span>
+                                        <span class="text-[#D4A574] font-semibold">Rp {{ number_format($item['total_cost'], 0, ',', '.') }}</span>
+                                    </div>
+                                @endforeach
+                                @foreach ($lossByReason as $item)
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[#8B6F47]">{{ $item['reason'] }}</span>
+                                        <span class="text-[#C85A54] font-semibold">Rp {{ number_format($item['total_cost'], 0, ',', '.') }}</span>
+                                    </div>
+                                @endforeach
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-[#8B6F47]">Gosong/Terlalu matang</span>
-                                <span class="text-[#D4A574] font-semibold">Rp 2.250</span>
-                            </div>
-                        </div>
+                        @else
+                            <p class="text-xs text-[#8B6F47]">Belum ada kerugian bulan ini.</p>
+                        @endif
                     </div>
                 </form>
             </div>

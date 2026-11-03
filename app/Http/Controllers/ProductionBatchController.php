@@ -82,6 +82,26 @@ class ProductionBatchController extends Controller
     }
 
     /**
+     * Delete a batch and remove its sales data from reports
+     */
+    public function destroy(ProductionBatch $batch)
+    {
+        // Hapus semua relasi yang mereferensi batch ini dulu
+        $batch->ingredientLogs()->delete();
+        $batch->wasteLogs()->delete();
+        $batch->hppCalculations()->delete();
+        $batch->shoppingList()->delete();
+
+        // Kemudian hapus batch-nya
+        $batch->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch berhasil dihapus',
+        ]);
+    }
+
+    /**
      * Generate sales report
      */
     public function generateReport(Request $request)

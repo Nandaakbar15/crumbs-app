@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Recipe;
 use App\Models\RecipeIngredient;
+use App\Models\Ingredient;
 use App\Models\Unit;
 
 class ReceipeHppController extends Controller
@@ -16,10 +17,12 @@ class ReceipeHppController extends Controller
             ->get();
         
         $units = Unit::all();
+        $ingredients = Ingredient::where('is_active', true)->orderBy('name')->get();
 
         return view('dashboard.receipehpp.index', [
             'recipes' => $recipes,
             'units' => $units,
+            'ingredients' => $ingredients,
         ]);
     }
 

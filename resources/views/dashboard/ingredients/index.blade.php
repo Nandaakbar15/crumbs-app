@@ -43,11 +43,16 @@
         </div>
 
         <!-- Filter Pills -->
+        @php
+            $kritisCount  = $ingredients->filter(fn($i) => $i->isCritical())->count();
+            $menipisCount = $ingredients->filter(fn($i) => $i->isLow() && !$i->isCritical())->count();
+            $amanCount    = $ingredients->filter(fn($i) => !$i->isLow())->count();
+        @endphp
         <div class="flex gap-3 flex-wrap">
             <button class="px-3 py-1 rounded-full bg-[#D4A574] text-white text-sm font-medium">Semua</button>
-            <button class="px-3 py-1 rounded-full bg-[#F5DEB3] text-[#8B5A2B] text-sm font-medium hover:bg-opacity-80 transition">Kritis 0</button>
-            <button class="px-3 py-1 rounded-full bg-[#F5DEB3] text-[#8B5A2B] text-sm font-medium hover:bg-opacity-80 transition">Menipis 0</button>
-            <button class="px-3 py-1 rounded-full bg-[#F5DEB3] text-[#8B5A2B] text-sm font-medium hover:bg-opacity-80 transition">Aman 0</button>
+            <button class="px-3 py-1 rounded-full bg-[#F5DEB3] text-[#8B5A2B] text-sm font-medium hover:bg-opacity-80 transition">Kritis {{ $kritisCount }}</button>
+            <button class="px-3 py-1 rounded-full bg-[#F5DEB3] text-[#8B5A2B] text-sm font-medium hover:bg-opacity-80 transition">Menipis {{ $menipisCount }}</button>
+            <button class="px-3 py-1 rounded-full bg-[#F5DEB3] text-[#8B5A2B] text-sm font-medium hover:bg-opacity-80 transition">Aman {{ $amanCount }}</button>
         </div>
     </div>
 
@@ -63,7 +68,6 @@
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Batas Min</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Harga Beli</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Biaya / satuan</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Nilai</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Status</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Aksi</th>
                     </tr>
@@ -75,14 +79,16 @@
                                 <p class="font-medium text-[#3E2723]">{{ $ingredient->name }}</p>
                                 <p class="text-xs text-[#8B6F47]">{{ $ingredient->baseUnit->code ?? 'unit' }}</p>
                             </td>
-                            <td class="px-6 py-4 text-sm text-[#8B6F47]">-</td>
+                            <td class="px-6 py-4 text-sm text-[#8B6F47]">{{ $ingredient->category ?? '-' }}</td>
                             <td class="px-6 py-4">
-                                <p class="font-medium text-[#3E2723]">{{ number_format($ingredient->current_stock, 0) }}</p>
-                                <p class="text-xs text-[#8B6F47]">{{ $ingredient->currentUnit->code ?? 'unit' }}</p>
+                                @php $stock = $ingredient->formatStock(); @endphp
+                                <p class="font-medium text-[#3E2723]">{{ number_format($stock['value'], 0, ',', '.') }}</p>
+                                <p class="text-xs text-[#8B6F47]">{{ $stock['unit'] }}</p>
                             </td>
                             <td class="px-6 py-4">
-                                <p class="font-medium text-[#3E2723]">{{ number_format($ingredient->minimum_threshold, 0) }}</p>
-                                <p class="text-xs text-[#8B6F47]">{{ $ingredient->currentUnit->code ?? 'unit' }}</p>
+                                @php $threshold = $ingredient->formatThreshold(); @endphp
+                                <p class="font-medium text-[#3E2723]">{{ number_format($threshold['value'], 0, ',', '.') }}</p>
+                                <p class="text-xs text-[#8B6F47]">{{ $threshold['unit'] }}</p>
                             </td>
                             <td class="px-6 py-4">
                                 <p class="font-medium text-[#3E2723]">Rp {{ number_format($ingredient->getLatestPrice()?->price_per_unit ?? 0, 0, ',', '.') }}</p>
@@ -90,9 +96,6 @@
                             </td>
                             <td class="px-6 py-4">
                                 <p class="font-medium text-[#D4A574]">Rp {{ number_format(($ingredient->getLatestPrice()?->price_per_unit ?? 0) / max($ingredient->current_stock, 1), 0, ',', '.') }}</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-[#3E2723]">Rp {{ number_format(($ingredient->getLatestPrice()?->price_per_unit ?? 0) * $ingredient->current_stock, 0, ',', '.') }}</p>
                             </td>
                             <td class="px-6 py-4">
                                 @if ($ingredient->isCritical())
@@ -118,7 +121,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-8 text-center text-[#8B6F47]">
+                            <td colspan="8" class="px-6 py-8 text-center text-[#8B6F47]">
                                 <p>Belum ada bahan</p>
                             </td>
                         </tr>
@@ -147,31 +150,43 @@
                     <input type="text" name="name" placeholder="Gula Pasir" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                 </div>
 
-                <!-- Row: Kategori & Satuan Dasar -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-[#3E2723] mb-2">Kategori</label>
-                        <input type="text" name="category" placeholder="Umum" class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-[#3E2723] mb-2">Satuan dasar (stok & resep)</label>
-                        <div class="flex items-center gap-2">
-                            <input type="number" placeholder="1" min="1" class="w-16 flex-shrink-0 px-2 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574] text-center">
-                            <div class="flex gap-1 flex-shrink-0">
-                                <button type="button" onclick="selectUnit('g', this)" class="px-3 py-2 rounded-lg border-2 border-[#D4A574] bg-[#D4A574] text-white text-sm font-medium whitespace-nowrap">g</button>
-                                <button type="button" onclick="selectUnit('ml', this)" class="px-3 py-2 rounded-lg border-2 border-[#E8DCC8] text-[#8B6F47] text-sm font-medium hover:bg-[#F5DEB3] transition whitespace-nowrap">ml</button>
-                                <button type="button" onclick="selectUnit('pcs', this)" class="px-3 py-2 rounded-lg border-2 border-[#E8DCC8] text-[#8B6F47] text-sm font-medium hover:bg-[#F5DEB3] transition whitespace-nowrap">pcs</button>
-                            </div>
+                <!-- Row: Kategori -->
+                <div>
+                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Kategori</label>
+                    <select name="category" class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="Bahan Baku">Bahan Baku</option>
+                        <option value="Topping">Topping</option>
+                        <option value="Perisa">Perisa</option>
+                        <option value="Pewarna">Pewarna</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <!-- Satuan Dasar -->
+                <div>
+                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Satuan dasar (stok & resep)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="purchase_quantity" id="purchaseQty" value="1" min="1" step="1" required
+                            class="w-20 flex-shrink-0 px-2 py-2 border border-[#D4A574] rounded-lg focus:outline-none focus:border-[#D4A574] text-center text-sm font-semibold text-[#3E2723]">
+                        <div class="flex gap-1 flex-wrap">
+                            <button type="button" onclick="selectUnit('g', this)" class="px-3 py-2 rounded-lg border-2 border-[#D4A574] bg-[#D4A574] text-white text-sm font-medium whitespace-nowrap">g</button>
+                            <button type="button" onclick="selectUnit('ml', this)" class="px-3 py-2 rounded-lg border-2 border-[#E8DCC8] text-[#8B6F47] text-sm font-medium hover:bg-[#F5DEB3] transition whitespace-nowrap">ml</button>
+                            <button type="button" onclick="selectUnit('pcs', this)" class="px-3 py-2 rounded-lg border-2 border-[#E8DCC8] text-[#8B6F47] text-sm font-medium hover:bg-[#F5DEB3] transition whitespace-nowrap">pcs</button>
+                            <button type="button" onclick="selectUnit('bh', this)" class="px-3 py-2 rounded-lg border-2 border-[#E8DCC8] text-[#8B6F47] text-sm font-medium hover:bg-[#F5DEB3] transition whitespace-nowrap">bh</button>
+                            <button type="button" onclick="selectUnit('btr', this)" class="px-3 py-2 rounded-lg border-2 border-[#E8DCC8] text-[#8B6F47] text-sm font-medium hover:bg-[#F5DEB3] transition whitespace-nowrap">btr</button>
                         </div>
-                        <input type="hidden" name="base_unit_id" id="baseUnitId" value="1">
                     </div>
+                    <p class="text-xs text-[#8B6F47] mt-1">Jumlah per pembelian · Contoh: 250 g / Rp 13.500</p>
+                    <input type="hidden" name="base_unit_id" id="baseUnitId" value="{{ $units->firstWhere('code', 'gram')?->id ?? 1 }}">
                 </div>
 
                 <!-- Row: Harga Beli & Satuan Beli -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-[#3E2723] mb-2">Harga beli per satuan beli (Rp)</label>
-                        <input type="number" name="price_per_unit" placeholder="17500" step="0.01" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <label class="block text-sm font-medium text-[#3E2723] mb-2">Harga beli (Rp)</label>
+                        <input type="number" name="price_per_unit" placeholder="13500" step="1" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <p class="text-xs text-[#8B6F47] mt-1">Harga untuk <span id="priceHint">1 g</span></p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-2">Satuan beli</label>
@@ -187,13 +202,12 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-2">Stok saat ini</label>
-                        <input type="number" name="current_stock" placeholder="0" step="0.01" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <input type="number" name="current_stock" placeholder="0" step="1" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-2">Satuan</label>
-                        <select class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]" disabled>
-                            <option id="selectedUnit">gram</option>
-                        </select>
+                        <input type="text" id="selectedUnit" name="stock_unit_label" placeholder="gram"
+                            class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg bg-[#FAF8F3] focus:outline-none text-sm text-[#8B6F47]" readonly>
                     </div>
                 </div>
 
@@ -201,20 +215,30 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-2">Batas minimum (safety stock)</label>
-                        <input type="number" name="minimum_threshold" placeholder="0" step="0.01" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <input type="number" name="minimum_threshold" placeholder="0" step="1" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-2">Satuan</label>
-                        <select class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]" disabled>
-                            <option>gram</option>
-                        </select>
+                        <input type="text" id="selectedUnitMin" placeholder="gram"
+                            class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg bg-[#FAF8F3] focus:outline-none text-sm text-[#8B6F47]" readonly>
+                        <p class="text-xs text-[#8B6F47] mt-1">(satuan dasar)</p>
                     </div>
                 </div>
 
-                <!-- Supplier -->
+                <!-- Metode Bayar -->
                 <div>
-                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Supplier / tempat beli <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
-                    <input type="text" name="supplier_name" placeholder="Nama toko / supplier..." class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Metode Bayar <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
+                    <select name="supplier_name" class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <option value="">-- Pilih Metode --</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Cashless">Cashless</option>
+                    </select>
+                </div>
+
+                <!-- Supplier / Tempat Beli -->
+                <div>
+                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Supplier / Tempat Beli <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
+                    <input type="text" name="store_name" placeholder="Nama toko / supplier..." class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                 </div>
 
                 <!-- Buttons -->
@@ -285,11 +309,20 @@
                         class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                 </div>
 
-                <!-- Supplier (hanya saat Stok Masuk) -->
+                <!-- Metode Bayar (hanya saat Stok Masuk) -->
                 <div id="restockSupplierSection">
-                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Supplier / tempat beli <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
-                    <input type="text" name="supplier_name" id="restockSupplier" placeholder="Nama toko / supplier..."
+                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Metode Bayar <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
+                    <select name="supplier_name" id="restockSupplier"
                         class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <option value="">-- Pilih Metode --</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Cashless">Cashless</option>
+                    </select>
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium text-[#3E2723] mb-2">Supplier / Tempat Beli <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
+                        <input type="text" name="store_name" id="restockStoreName" placeholder="Nama toko / supplier..."
+                            class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                    </div>
                 </div>
 
                 <!-- Catatan -->
@@ -358,9 +391,24 @@
             btn.classList.remove('border-[#E8DCC8]', 'text-[#8B6F47]', 'hover:bg-[#F5DEB3]');
             btn.classList.add('border-[#D4A574]', 'bg-[#D4A574]', 'text-white');
             
-            document.getElementById('selectedUnit').textContent = unit;
-            // Unit IDs match the seeder: gram=1, ml=3, pcs=5
-            const unitMap = { 'g': {{ $units->firstWhere('code', 'gram')?->id ?? 1 }}, 'ml': {{ $units->firstWhere('code', 'ml')?->id ?? 3 }}, 'pcs': {{ $units->firstWhere('code', 'pcs')?->id ?? 5 }} };
+            document.getElementById('selectedUnit').value = unit;
+            if (document.getElementById('selectedUnitMin')) {
+                document.getElementById('selectedUnitMin').value = unit;
+            }
+            // Update price hint
+            const qty = document.getElementById('purchaseQty')?.value || 1;
+            if (document.getElementById('priceHint')) {
+                document.getElementById('priceHint').textContent = `${qty} ${unit}`;
+            }
+            // Unit IDs match the seeder: gram=1, kg=2, ml=3, liter=4, pcs=5, bh=7, btr=8
+            const unitMap = {
+                'g':   {{ $units->firstWhere('code', 'gram')?->id ?? 1 }},
+                'kg':  {{ $units->firstWhere('code', 'kg')?->id ?? 2 }},
+                'ml':  {{ $units->firstWhere('code', 'ml')?->id ?? 3 }},
+                'pcs': {{ $units->firstWhere('code', 'pcs')?->id ?? 5 }},
+                'bh':  {{ $units->firstWhere('code', 'bh')?->id ?? 7 }},
+                'btr': {{ $units->firstWhere('code', 'btr')?->id ?? 8 }},
+            };
             document.getElementById('baseUnitId').value = unitMap[unit] || {{ $units->firstWhere('code', 'gram')?->id ?? 1 }};
         }
 
@@ -372,7 +420,16 @@
             document.getElementById('formMethod').value = 'POST';
             document.getElementById('modalTitle').textContent = 'Tambah Bahan';
             document.getElementById('baseUnitId').value = '{{ $units->firstWhere('code', 'gram')?->id ?? 1 }}';
-            document.getElementById('selectedUnit').textContent = 'g';
+            document.getElementById('selectedUnit').value = 'g';
+            if (document.getElementById('selectedUnitMin')) {
+                document.getElementById('selectedUnitMin').value = 'g';
+            }
+            if (document.getElementById('purchaseQty')) {
+                document.getElementById('purchaseQty').value = 1;
+            }
+            if (document.getElementById('priceHint')) {
+                document.getElementById('priceHint').textContent = '1 g';
+            }
 
             // Reset unit buttons
             const unitButtons = document.querySelectorAll('button[onclick*="selectUnit"]');
@@ -400,19 +457,36 @@
                     document.getElementById('formMethod').value = 'PUT';
                     document.getElementById('modalTitle').textContent = 'Edit Bahan';
                     document.querySelector('input[name="name"]').value = data.name;
-                    document.querySelector('input[name="price_per_unit"]').value = data.price_per_unit;
-                    document.querySelector('input[name="current_stock"]').value = data.current_stock;
-                    document.querySelector('input[name="minimum_threshold"]').value = data.minimum_threshold;
+
+                    // Populate category dropdown
+                    const catSelect = document.querySelector('select[name="category"]');
+                    if (catSelect) catSelect.value = data.category ?? '';
+                    document.querySelector('input[name="price_per_unit"]').value = Math.round(parseFloat(data.price_per_unit));
+                    document.querySelector('input[name="current_stock"]').value = Math.round(parseFloat(data.current_stock));
+                    document.querySelector('input[name="minimum_threshold"]').value = Math.round(parseFloat(data.minimum_threshold));
                     document.querySelector('select[name="current_unit_id"]').value = data.current_unit_id;
 
-                    if (document.querySelector('input[name="supplier_name"]')) {
-                        document.querySelector('input[name="supplier_name"]').value = data.supplier_name ?? '';
+                    if (document.querySelector('select[name="supplier_name"]')) {
+                        document.querySelector('select[name="supplier_name"]').value = data.supplier_name ?? '';
+                    }
+                    if (document.querySelector('input[name="store_name"]')) {
+                        document.querySelector('input[name="store_name"]').value = data.store_name ?? '';
                     }
 
-                    const unitMap = { {{ $units->firstWhere('code', 'gram')?->id ?? 1 }}: 'g', {{ $units->firstWhere('code', 'ml')?->id ?? 3 }}: 'ml', {{ $units->firstWhere('code', 'pcs')?->id ?? 5 }}: 'pcs' };
+                    const unitMap = {
+                        {{ $units->firstWhere('code', 'gram')?->id ?? 1 }}: 'g',
+                        {{ $units->firstWhere('code', 'kg')?->id ?? 2 }}:   'kg',
+                        {{ $units->firstWhere('code', 'ml')?->id ?? 3 }}:   'ml',
+                        {{ $units->firstWhere('code', 'pcs')?->id ?? 5 }}:  'pcs',
+                        {{ $units->firstWhere('code', 'bh')?->id ?? 7 }}:   'bh',
+                        {{ $units->firstWhere('code', 'btr')?->id ?? 8 }}:  'btr',
+                    };
                     const unitCode = unitMap[data.base_unit_id] || 'g';
                     document.getElementById('baseUnitId').value = data.base_unit_id;
-                    document.getElementById('selectedUnit').textContent = unitCode;
+                    document.getElementById('selectedUnit').value = unitCode;
+                    if (document.getElementById('selectedUnitMin')) {
+                        document.getElementById('selectedUnitMin').value = unitCode;
+                    }
 
                     const unitButtons = document.querySelectorAll('button[onclick*="selectUnit"]');
                     unitButtons.forEach(btn => {
@@ -450,12 +524,21 @@
 
         // ── Restock Modal ──────────────────────────────────────────────────────
 
+        // Unit conversion factors (server-rendered)
+        const unitConversionMap = {
+            @foreach ($units as $unit)
+            {{ $unit->id }}: { code: '{{ $unit->code }}', factor: {{ (float) $unit->conversion_factor }} },
+            @endforeach
+        };
+
         let _restockCurrentStock = 0;
         let _restockUnitCode = '';
+        let _restockBaseUnitId = null;
 
         function openRestockModal(id, name, currentStock, unitCode, unitId, lastPrice) {
             _restockCurrentStock = parseFloat(currentStock) || 0;
             _restockUnitCode = unitCode;
+            _restockBaseUnitId = unitId;
 
             document.getElementById('restockIngredientName').textContent = name;
             document.getElementById('restockForm').action = `/ingredients/${id}/restock`;
@@ -473,6 +556,9 @@
             // Reset fields
             document.getElementById('restockQty').value = '';
             document.getElementById('restockSupplier').value = '';
+            if (document.getElementById('restockStoreName')) {
+                document.getElementById('restockStoreName').value = '';
+            }
             document.getElementById('restockNotes').value = '';
             updateRestockPreview();
 
@@ -520,28 +606,48 @@
         }
 
         function updateRestockPreview() {
-            const type  = document.getElementById('restockType').value;
-            const qty   = parseFloat(document.getElementById('restockQty').value) || 0;
-            const after = type === 'in'
-                ? _restockCurrentStock + qty
-                : Math.max(0, _restockCurrentStock - qty);
-            const delta = type === 'in' ? qty : -qty;
-            const unit  = _restockUnitCode;
+            const type       = document.getElementById('restockType').value;
+            const qty        = parseFloat(document.getElementById('restockQty').value) || 0;
+            const selectedUnitId = parseInt(document.getElementById('restockUnitId').value);
 
-            document.getElementById('previewBefore').textContent = `${_restockCurrentStock} ${unit}`;
-            document.getElementById('previewAfter').textContent  = `${after.toFixed(2)} ${unit}`;
+            // Get conversion factor for the selected input unit
+            const unitInfo   = unitConversionMap[selectedUnitId] || { code: _restockUnitCode, factor: 1 };
+            const qtyInBase  = qty * unitInfo.factor;
+            const baseUnit   = unitConversionMap[_restockBaseUnitId] || { code: _restockUnitCode };
+
+            const after = type === 'in'
+                ? _restockCurrentStock + qtyInBase
+                : Math.max(0, _restockCurrentStock - qtyInBase);
+
+            document.getElementById('previewBefore').textContent = `${_restockCurrentStock} ${baseUnit.code}`;
+            document.getElementById('previewAfter').textContent  = `${Math.round(after)} ${baseUnit.code}`;
 
             const deltaEl = document.getElementById('previewDelta');
+            // Show both input qty and converted base qty if different
+            const conversionNote = (unitInfo.factor !== 1)
+                ? ` (${qty} ${unitInfo.code} = ${Math.round(qtyInBase)} ${baseUnit.code})`
+                : '';
+
             if (type === 'in') {
-                deltaEl.textContent = `+${qty} (Stok setelah)`;
+                deltaEl.textContent = `+${Math.round(qtyInBase)} ${baseUnit.code}${conversionNote}`;
                 deltaEl.className = 'text-[#6B9E77] text-xs';
             } else {
-                deltaEl.textContent = `−${qty} (Stok setelah)`;
+                deltaEl.textContent = `−${Math.round(qtyInBase)} ${baseUnit.code}${conversionNote}`;
                 deltaEl.className = 'text-[#C85A54] text-xs';
             }
         }
 
         document.getElementById('restockQty').addEventListener('input', updateRestockPreview);
+        document.getElementById('restockUnitId').addEventListener('change', updateRestockPreview);
+
+        // Update price hint when purchase qty changes
+        document.getElementById('purchaseQty')?.addEventListener('input', function() {
+            const qty  = this.value || 1;
+            const unit = document.getElementById('selectedUnit')?.value || 'g';
+            if (document.getElementById('priceHint')) {
+                document.getElementById('priceHint').textContent = `${qty} ${unit}`;
+            }
+        });
 
         // Close restock modal on backdrop click
         document.getElementById('restockModal').addEventListener('click', function(e) {
@@ -597,7 +703,7 @@
                             : '';
 
                         const supplierHtml = entry.supplier_name && entry.supplier_name !== '-'
-                            ? `<span class="text-xs text-[#8B6F47]">· ${entry.supplier_name}</span>`
+                            ? `<span class="text-xs text-[#8B6F47]">· 💳 ${entry.supplier_name}</span>`
                             : '';
 
                         const notesHtml = entry.notes

@@ -214,8 +214,8 @@
                         <div class="flex items-center gap-3 p-3 rounded-lg bg-[#C85A54] bg-opacity-10 border border-[#C85A54]">
                             <span class="text-lg">🔴</span>
                             <div class="flex-1 text-sm">
-                                <p class="font-medium text-[#3E2723]">{{ $stock->name }}</p>
-                                <p class="text-xs text-[#8B6F47]">Stok: {{ $stock->current_stock }} {{ $stock->currentUnit->code ?? 'unit' }}</p>
+                                <p class="font-medium text-white">{{ $stock->name }}</p>
+                                <p class="text-xs text-slate-600 font-bold">Stok: {{ $stock->current_stock }} {{ $stock->currentUnit->code ?? 'unit' }}</p>
                             </div>
                         </div>
                     @empty

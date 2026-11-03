@@ -11,6 +11,7 @@ class IngredientPrice extends Model
         'ingredient_id',
         'supplier_id',
         'supplier_name',
+        'store_name',
         'price_per_unit',
         'unit_id',
         'purchase_date',
