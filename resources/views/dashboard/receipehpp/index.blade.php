@@ -215,6 +215,89 @@
         </div>
     </div>
 
+    <!-- Detail Panel (slide-in from right) -->
+    <div id="detailOverlay" class="hidden fixed inset-0 bg-black bg-opacity-30 z-40" onclick="closeDetailPanel()"></div>
+    <div id="detailPanel" class="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+
+        <!-- Header tetap -->
+        <div class="px-6 py-5 border-b border-[#E8DCC8] flex items-center justify-between flex-shrink-0">
+            <h2 class="text-lg font-bold text-[#3E2723]">Detail Resep</h2>
+            <button onclick="closeDetailPanel()" class="text-[#8B6F47] hover:text-[#3E2723] text-2xl leading-none">&times;</button>
+        </div>
+
+        <!-- Scroll area -->
+        <div class="flex-1 overflow-y-auto">
+
+            <!-- Loading state -->
+            <div id="detailLoading" class="flex flex-col items-center justify-center py-16 text-[#8B6F47]">
+                <svg class="animate-spin w-6 h-6 mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                Memuat detail...
+            </div>
+
+            <!-- Content -->
+            <div id="detailContent" class="hidden">
+
+                <!-- Gambar -->
+                <div id="detailImage" class="h-44 bg-gradient-to-br from-[#F5DEB3] to-[#E8DCC8] flex items-center justify-center overflow-hidden flex-shrink-0"></div>
+
+                <div class="px-6 py-5 space-y-5">
+
+                    <!-- Nama & Kategori -->
+                    <div>
+                        <p id="detailCategory" class="text-xs font-semibold text-[#D4A574] uppercase tracking-wide mb-1"></p>
+                        <h3 id="detailName" class="text-2xl font-bold text-[#3E2723]"></h3>
+                    </div>
+
+                    <!-- HPP & Harga ringkas -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-[#FAF8F3] rounded-lg px-4 py-3 border border-[#E8DCC8]">
+                            <p class="text-xs text-[#8B6F47] font-semibold uppercase tracking-wide mb-1">Harga Jual / pcs</p>
+                            <p id="detailSellingPrice" class="text-lg font-bold text-[#D4A574]"></p>
+                        </div>
+                        <div class="bg-[#FAF8F3] rounded-lg px-4 py-3 border border-[#E8DCC8]">
+                            <p class="text-xs text-[#8B6F47] font-semibold uppercase tracking-wide mb-1">Overhead / batch</p>
+                            <p id="detailOverhead" class="text-lg font-bold text-[#3E2723]"></p>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <hr class="border-[#E8DCC8]">
+
+                    <!-- Daftar Bahan -->
+                    <div>
+                        <h4 class="text-sm font-bold text-[#3E2723] uppercase tracking-wide mb-3">Bahan-bahan</h4>
+
+                        <div id="detailIngredientTable">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-[#E8DCC8]">
+                                        <th class="pb-2 text-left text-xs font-semibold text-[#8B6F47]">Bahan</th>
+                                        <th class="pb-2 text-right text-xs font-semibold text-[#8B6F47]">Jumlah</th>
+                                        <th class="pb-2 text-right text-xs font-semibold text-[#8B6F47]">Satuan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailIngredients"></tbody>
+                            </table>
+                        </div>
+
+                        <p id="detailNoIngredients" class="hidden text-sm text-[#8B6F47] italic">Belum ada bahan ditambahkan</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer dengan tombol Edit -->
+        <div class="px-6 py-4 border-t border-[#E8DCC8] flex-shrink-0">
+            <button id="detailEditBtn" class="w-full px-4 py-2 bg-[#D4A574] text-white rounded-lg font-medium hover:bg-opacity-90 transition">
+                Edit Resep
+            </button>
+        </div>
+    </div>
+
     <script>
         let ingredientCount = 0;
 
@@ -385,7 +468,78 @@
         }
 
         function viewRecipe(id) {
-            alert('View detail functionality coming soon');
+            // Tampilkan panel dan mulai loading
+            document.getElementById('detailOverlay').classList.remove('hidden');
+            const panel = document.getElementById('detailPanel');
+            panel.classList.remove('translate-x-full');
+            panel.classList.add('translate-x-0');
+
+            // Reset state
+            document.getElementById('detailLoading').classList.remove('hidden');
+            document.getElementById('detailContent').classList.add('hidden');
+
+            fetch(`/recipes/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('detailLoading').classList.add('hidden');
+
+                    // Header
+                    const imgEl = document.getElementById('detailImage');
+                    if (data.image_url) {
+                        imgEl.innerHTML = `<img src="${data.image_url}" alt="${data.name}" class="w-full h-full object-cover">`;
+                    } else {
+                        imgEl.innerHTML = `<span class="text-5xl">🥐</span>`;
+                    }
+
+                    document.getElementById('detailCategory').textContent =
+                        (data.category || 'Pastry').toUpperCase() + ' / ' + parseFloat(data.yield_quantity) + ' PCS';
+                    document.getElementById('detailName').textContent = data.name;
+
+                    // HPP & Harga
+                    document.getElementById('detailSellingPrice').textContent =
+                        'Rp ' + Number(data.selling_price).toLocaleString('id-ID');
+                    document.getElementById('detailOverhead').textContent =
+                        'Rp ' + Number(data.overhead_per_batch || 0).toLocaleString('id-ID');
+
+                    // Bahan-bahan
+                    const tbody = document.getElementById('detailIngredients');
+                    tbody.innerHTML = '';
+                    if (data.ingredients && data.ingredients.length > 0) {
+                        data.ingredients.forEach(ing => {
+                            tbody.insertAdjacentHTML('beforeend', `
+                                <tr class="border-b border-[#F0EDE6] last:border-0">
+                                    <td class="py-2 text-sm text-[#3E2723] font-medium">${ing.ingredient_name}</td>
+                                    <td class="py-2 text-sm text-right text-[#8B6F47]">${parseFloat(ing.quantity).toLocaleString('id-ID')}</td>
+                                    <td class="py-2 text-sm text-right text-[#8B6F47]">gram</td>
+                                </tr>
+                            `);
+                        });
+                        document.getElementById('detailNoIngredients').classList.add('hidden');
+                        document.getElementById('detailIngredientTable').classList.remove('hidden');
+                    } else {
+                        document.getElementById('detailNoIngredients').classList.remove('hidden');
+                        document.getElementById('detailIngredientTable').classList.add('hidden');
+                    }
+
+                    // Tombol Edit
+                    document.getElementById('detailEditBtn').onclick = () => {
+                        closeDetailPanel();
+                        openEditModal(id);
+                    };
+
+                    document.getElementById('detailContent').classList.remove('hidden');
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('detailLoading').textContent = 'Gagal memuat detail resep.';
+                });
+        }
+
+        function closeDetailPanel() {
+            document.getElementById('detailOverlay').classList.add('hidden');
+            const panel = document.getElementById('detailPanel');
+            panel.classList.add('translate-x-full');
+            panel.classList.remove('translate-x-0');
         }
 
         // Add event listeners to all input fields for real-time calculation

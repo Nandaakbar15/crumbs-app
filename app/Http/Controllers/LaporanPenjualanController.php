@@ -14,20 +14,19 @@ class LaporanPenjualanController extends Controller
      */
     public function index(Request $request)
     {
-        // Get date range from request or default to current week (Tuesday-based)
+        // Default: dari 7 hari lalu sampai hari ini (mencakup minggu berjalan)
         $today = Carbon::now();
-        $dayOfWeek = $today->dayOfWeek; // 0=Sunday, 1=Monday, 2=Tuesday
-        
-        if ($dayOfWeek < 2) {
-            $weekStart = $today->copy()->subDays($dayOfWeek + 6)->startOfDay();
-        } else {
-            $weekStart = $today->copy()->subDays($dayOfWeek - 2)->startOfDay();
+
+        // Cari Selasa terakhir (start of current Tuesday-based week)
+        $weekStart = $today->copy()->startOfWeek(Carbon::TUESDAY)->startOfDay();
+        // Jika hari ini sebelum Selasa (Sun/Mon), ambil Selasa minggu lalu
+        if ($weekStart->gt($today)) {
+            $weekStart->subWeek();
         }
-        
-        $weekEnd = $weekStart->copy()->addDays(6)->endOfDay();
+        $weekEnd = $weekStart->copy()->addDays(6)->endOfDay(); // Senin malam
 
         $startDate = $request->get('start_date', $weekStart->format('Y-m-d'));
-        $endDate = $request->get('end_date', $weekEnd->format('Y-m-d'));
+        $endDate   = $request->get('end_date',   $weekEnd->format('Y-m-d'));
         $reportType = $request->get('report_type', 'weekly');
 
         $start = Carbon::parse($startDate)->startOfDay();
@@ -70,33 +69,32 @@ class LaporanPenjualanController extends Controller
     private function groupByWeek($batches)
     {
         $grouped = [];
-        
+
         foreach ($batches as $batch) {
             $recordDate = Carbon::parse($batch->recorded_date);
-            $dayOfWeek = $recordDate->dayOfWeek;
-            
-            if ($dayOfWeek < 2) {
-                $tuesday = $recordDate->copy()->subDays($dayOfWeek + 6)->startOfDay();
-            } else {
-                $tuesday = $recordDate->copy()->subDays($dayOfWeek - 2)->startOfDay();
+
+            // Cari Selasa terakhir dari tanggal ini
+            $tuesday = $recordDate->copy()->startOfWeek(Carbon::TUESDAY)->startOfDay();
+            if ($tuesday->gt($recordDate)) {
+                $tuesday->subWeek();
             }
-            
+
             $monday = $tuesday->copy()->addDays(6)->endOfDay();
-            $weekKey = $tuesday->format('Y-m-d');
+            $weekKey    = $tuesday->format('Y-m-d');
             $weekPeriod = $tuesday->format('d M Y') . ' - ' . $monday->format('d M Y');
-            
+
             if (!isset($grouped[$weekKey])) {
                 $grouped[$weekKey] = [
-                    'period' => $weekPeriod,
+                    'period'     => $weekPeriod,
                     'start_date' => $tuesday->format('Y-m-d'),
-                    'end_date' => $monday->format('Y-m-d'),
-                    'batches' => [],
+                    'end_date'   => $monday->format('Y-m-d'),
+                    'batches'    => [],
                 ];
             }
-            
+
             $grouped[$weekKey]['batches'][] = $batch;
         }
-        
+
         return $grouped;
     }
 

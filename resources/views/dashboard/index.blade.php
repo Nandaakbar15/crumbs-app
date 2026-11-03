@@ -235,7 +235,7 @@
                     @endforelse
                 @else
                     <div class="p-4 rounded-lg bg-[#6B9E77] bg-opacity-10 border border-[#6B9E77]">
-                        <p class="text-sm text-[#6B9E77] font-medium">✓ Semua bahan dalam stok aman</p>
+                        <p class="text-sm text-white font-medium">✓ Semua bahan dalam stok aman</p>
                     </div>
                 @endif
             </div>

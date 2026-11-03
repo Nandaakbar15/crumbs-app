@@ -247,6 +247,12 @@
                 return;
             }
 
+            // Use local date (not UTC) to avoid off-by-one day at timezone boundary
+            const now = new Date();
+            const localDate = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0');
+
             fetch(`/batches/${batchId}/record-sale`, {
                 method: 'POST',
                 headers: {
@@ -255,7 +261,7 @@
                 },
                 body: JSON.stringify({
                     quantity_sold: parseFloat(quantity),
-                    recorded_date: new Date().toISOString().split('T')[0]
+                    recorded_date: localDate
                 })
             })
             .then(res => res.json())
