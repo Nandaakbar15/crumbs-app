@@ -13,6 +13,8 @@ class IngredientPrice extends Model
         'supplier_name',
         'store_name',
         'price_per_unit',
+        'purchase_price_input',
+        'purchase_qty_input',
         'unit_id',
         'purchase_date',
         'quantity_purchased',

@@ -68,16 +68,18 @@ class IngredientController extends Controller
             'is_active'          => true,
         ]);
 
-        // Create price record — store normalized price per base unit
+        // Create price record — store normalized price per base unit + original input values
         $ingredient->prices()->create([
-            'price_per_unit'     => $pricePerBase,
-            'unit_id'            => $validated['base_unit_id'],
-            'supplier_name'      => $validated['supplier_name'] ?? null,
-            'store_name'         => $validated['store_name'] ?? null,
-            'purchase_date'      => now()->toDateString(),
-            'quantity_purchased' => $validated['current_stock'],
-            'total_cost'         => $pricePerBase * $stockInBase,
-            'is_active'          => true,
+            'price_per_unit'       => $pricePerBase,
+            'purchase_price_input' => (float) $validated['price_per_unit'],
+            'purchase_qty_input'   => $purchaseQty,
+            'unit_id'              => $validated['base_unit_id'],
+            'supplier_name'        => $validated['supplier_name'] ?? null,
+            'store_name'           => $validated['store_name'] ?? null,
+            'purchase_date'        => now()->toDateString(),
+            'quantity_purchased'   => $validated['current_stock'],
+            'total_cost'           => $pricePerBase * $stockInBase,
+            'is_active'            => true,
         ]);
 
         return redirect()->route('ingredients.index')
@@ -114,18 +116,20 @@ class IngredientController extends Controller
         $latestPrice = $ingredient->getLatestPrice();
 
         return response()->json([
-            'id' => $ingredient->id,
-            'name' => $ingredient->name,
-            'category' => $ingredient->category ?? '',
-            'base_unit_id' => $ingredient->base_unit_id,
-            'current_unit_id' => $ingredient->current_unit_id,
-            'current_stock' => $ingredient->current_stock,
-            'minimum_threshold' => $ingredient->minimum_threshold,
-            'price_per_unit' => $latestPrice?->price_per_unit ?? 0,
-            'supplier_name' => $latestPrice?->supplier_name ?? '',
-            'store_name' => $latestPrice?->store_name ?? '',
-            'base_unit_code' => $ingredient->baseUnit?->code ?? 'g',
-            'current_unit_code' => $ingredient->currentUnit?->code ?? 'g',
+            'id'               => $ingredient->id,
+            'name'             => $ingredient->name,
+            'category'         => $ingredient->category ?? '',
+            'base_unit_id'     => $ingredient->base_unit_id,
+            'current_unit_id'  => $ingredient->current_unit_id,
+            'current_stock'    => $ingredient->current_stock,
+            'minimum_threshold'=> $ingredient->minimum_threshold,
+            // Return the original input values so the form shows what the user typed
+            'price_per_unit'   => $latestPrice?->purchase_price_input ?? $latestPrice?->price_per_unit ?? 0,
+            'purchase_quantity'=> $latestPrice?->purchase_qty_input ?? 1,
+            'supplier_name'    => $latestPrice?->supplier_name ?? '',
+            'store_name'       => $latestPrice?->store_name ?? '',
+            'base_unit_code'   => $ingredient->baseUnit?->code ?? 'g',
+            'current_unit_code'=> $ingredient->currentUnit?->code ?? 'g',
         ]);
     }
 
@@ -165,17 +169,19 @@ class IngredientController extends Controller
             'minimum_threshold' => $thresholdInBase,
         ]);
 
-        // Update or create price record with normalized per-base-unit price
+        // Update or create price record with normalized per-base-unit price + original input values
         $ingredient->prices()->updateOrCreate(
             ['is_active' => true],
             [
-                'price_per_unit'     => $pricePerBase,
-                'unit_id'            => $validated['base_unit_id'],
-                'supplier_name'      => $validated['supplier_name'] ?? null,
-                'store_name'         => $validated['store_name'] ?? null,
-                'purchase_date'      => now()->toDateString(),
-                'quantity_purchased' => $validated['current_stock'],
-                'total_cost'         => $pricePerBase * $stockInBase,
+                'price_per_unit'       => $pricePerBase,
+                'purchase_price_input' => (float) $validated['price_per_unit'],
+                'purchase_qty_input'   => $purchaseQty,
+                'unit_id'              => $validated['base_unit_id'],
+                'supplier_name'        => $validated['supplier_name'] ?? null,
+                'store_name'           => $validated['store_name'] ?? null,
+                'purchase_date'        => now()->toDateString(),
+                'quantity_purchased'   => $validated['current_stock'],
+                'total_cost'           => $pricePerBase * $stockInBase,
             ]
         );
 

@@ -133,7 +133,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-1">Hasil per batch (pcs)</label>
-                        <input type="number" name="yield_quantity" placeholder="12" step="0.01" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <input type="number" name="yield_quantity" placeholder="12" step="1" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-1">&nbsp;</label>
@@ -145,16 +145,13 @@
                     </div>
                 </div>
 
-                <!-- Kemassan & Overhead -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-[#3E2723] mb-1">Kemasan & overhead per batch (Rp)</label>
-                        <input type="number" name="overhead_per_batch" placeholder="0" step="0.01" class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-[#3E2723] mb-1">Harga jual per pcs (Rp)</label>
-                        <input type="number" name="selling_price" placeholder="25000" step="0.01" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
-                    </div>
+                <!-- Overhead hidden — selalu 0, field dihilangkan -->
+                <input type="hidden" name="overhead_per_batch" value="0">
+
+                <!-- Harga jual -->
+                <div>
+                    <label class="block text-sm font-medium text-[#3E2723] mb-1">Harga jual per pcs (Rp)</label>
+                    <input type="number" name="selling_price" placeholder="25000" step="1" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                 </div>
 
                 <!-- URL Gambar -->
@@ -345,7 +342,7 @@
                         </select>
                     </td>
                     <td class="px-3 py-2 border-b border-[#E8DCC8]">
-                        <input type="number" name="ingredients[${ingredientCount}][quantity]" placeholder="0" step="0.01" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm ingredient-quantity" onchange="calculateHPP()" oninput="calculateHPP()">
+                        <input type="number" name="ingredients[${ingredientCount}][quantity]" placeholder="0" step="1" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm ingredient-quantity" onchange="calculateHPP()" oninput="calculateHPP()">
                     </td>
                     <td class="px-3 py-2 border-b border-[#E8DCC8] text-center">
                         <button type="button" onclick="removeIngredient(this)" class="text-red-500 hover:text-red-700 text-sm">✕</button>
@@ -362,16 +359,15 @@
 
         function calculateHPP() {
             // Get values from form safely
-            const overheadInput = document.querySelector('input[name="overhead_per_batch"]');
             const sellingPriceInput = document.querySelector('input[name="selling_price"]');
             const yieldQuantityInput = document.querySelector('input[name="yield_quantity"]');
 
             // If form fields don't exist, return early
-            if (!overheadInput || !sellingPriceInput || !yieldQuantityInput) {
+            if (!sellingPriceInput || !yieldQuantityInput) {
                 return;
             }
 
-            const overhead = parseFloat(overheadInput.value) || 0;
+            const overhead = 0; // overhead dihilangkan dari form
             const sellingPrice = parseFloat(sellingPriceInput.value) || 0;
             const yield_quantity = parseFloat(yieldQuantityInput.value) || 1;
 
@@ -418,7 +414,6 @@
                     document.querySelector('select[name="category"]').value = data.category || '';
                     document.querySelector('input[name="yield_quantity"]').value = data.yield_quantity;
                     document.querySelector('select[name="yield_unit_id"]').value = data.yield_unit_id;
-                    document.querySelector('input[name="overhead_per_batch"]').value = data.overhead_per_batch || 0;
                     document.querySelector('input[name="selling_price"]').value = data.selling_price;
                     document.querySelector('input[name="image_url"]').value = data.image_url || '';
 
@@ -447,7 +442,7 @@
                                         </select>
                                     </td>
                                     <td class="px-3 py-2 border-b border-[#E8DCC8]">
-                                        <input type="number" name="ingredients[${ingredientCount}][quantity]" placeholder="0" step="0.01" value="${ing.quantity}" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm ingredient-quantity" onchange="calculateHPP()" oninput="calculateHPP()">
+                                        <input type="number" name="ingredients[${ingredientCount}][quantity]" placeholder="0" step="1" value="${ing.quantity}" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm ingredient-quantity" onchange="calculateHPP()" oninput="calculateHPP()">
                                     </td>
                                     <td class="px-3 py-2 border-b border-[#E8DCC8] text-center">
                                         <button type="button" onclick="removeIngredient(this)" class="text-red-500 hover:text-red-700 text-sm">✕</button>
@@ -549,12 +544,10 @@
 
         // Add event listeners to all input fields for real-time calculation
         document.addEventListener('DOMContentLoaded', function() {
-            // Listen for changes on overhead and selling price
-            const overheadInput = document.querySelector('input[name="overhead_per_batch"]');
+            // Listen for changes on selling price and yield
             const sellingPriceInput = document.querySelector('input[name="selling_price"]');
             const yieldQuantityInput = document.querySelector('input[name="yield_quantity"]');
 
-            if (overheadInput) overheadInput.addEventListener('input', calculateHPP);
             if (sellingPriceInput) sellingPriceInput.addEventListener('input', calculateHPP);
             if (yieldQuantityInput) yieldQuantityInput.addEventListener('input', calculateHPP);
 

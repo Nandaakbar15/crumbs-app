@@ -462,6 +462,10 @@
                     const catSelect = document.querySelector('select[name="category"]');
                     if (catSelect) catSelect.value = data.category ?? '';
                     document.querySelector('input[name="price_per_unit"]').value = Math.round(parseFloat(data.price_per_unit));
+                    // Restore purchase_quantity (jumlah per pembelian)
+                    if (document.getElementById('purchaseQty')) {
+                        document.getElementById('purchaseQty').value = Math.round(parseFloat(data.purchase_quantity ?? 1));
+                    }
                     document.querySelector('input[name="current_stock"]').value = Math.round(parseFloat(data.current_stock));
                     document.querySelector('input[name="minimum_threshold"]').value = Math.round(parseFloat(data.minimum_threshold));
                     document.querySelector('select[name="current_unit_id"]').value = data.current_unit_id;
@@ -500,6 +504,13 @@
 
                     const form = document.getElementById('ingredientForm');
                     form.action = `/ingredients/${data.id}`;
+
+                    // Update price hint with restored values
+                    if (document.getElementById('priceHint')) {
+                        const qty  = document.getElementById('purchaseQty')?.value || 1;
+                        const unit = document.getElementById('selectedUnit')?.value || 'g';
+                        document.getElementById('priceHint').textContent = `${qty} ${unit}`;
+                    }
 
                     document.getElementById('addModal').classList.remove('hidden');
                 })

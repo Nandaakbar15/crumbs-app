@@ -37,6 +37,9 @@ class ReceipeHppController extends Controller
             'overhead_per_batch' => 'nullable|numeric|min:0',
             'image_url' => 'nullable|string',
             'ingredients' => 'nullable|array',
+            'ingredients.*.ingredient_id' => 'required|exists:ingredients,id',
+            'ingredients.*.unit_id' => 'required|exists:units,id',
+            'ingredients.*.quantity' => 'required|numeric|min:0.01',
         ]);
 
         // Generate unique code from recipe name
@@ -49,9 +52,20 @@ class ReceipeHppController extends Controller
             'yield_unit_id' => $validated['yield_unit_id'],
             'selling_price' => $validated['selling_price'],
             'overhead_per_batch' => $validated['overhead_per_batch'] ?? 0,
-            'image_url' => $validated['image_url'],
+            'image_url' => $validated['image_url'] ?? null,
             'is_active' => true,
         ]);
+
+        // Save ingredients
+        if (!empty($validated['ingredients'])) {
+            foreach ($validated['ingredients'] as $item) {
+                $recipe->ingredients()->create([
+                    'ingredient_id' => $item['ingredient_id'],
+                    'unit_id'       => $item['unit_id'],
+                    'quantity'      => $item['quantity'],
+                ]);
+            }
+        }
 
         return redirect()->route('recipes.index')
             ->with('success', 'Resep berhasil ditambahkan');
@@ -116,6 +130,9 @@ class ReceipeHppController extends Controller
             'overhead_per_batch' => 'nullable|numeric|min:0',
             'image_url' => 'nullable|string',
             'ingredients' => 'nullable|array',
+            'ingredients.*.ingredient_id' => 'required|exists:ingredients,id',
+            'ingredients.*.unit_id' => 'required|exists:units,id',
+            'ingredients.*.quantity' => 'required|numeric|min:0.01',
         ]);
 
         $recipe->update([
@@ -125,8 +142,20 @@ class ReceipeHppController extends Controller
             'yield_unit_id' => $validated['yield_unit_id'],
             'selling_price' => $validated['selling_price'],
             'overhead_per_batch' => $validated['overhead_per_batch'] ?? 0,
-            'image_url' => $validated['image_url'],
+            'image_url' => $validated['image_url'] ?? null,
         ]);
+
+        // Replace all ingredients with the new set
+        $recipe->ingredients()->delete();
+        if (!empty($validated['ingredients'])) {
+            foreach ($validated['ingredients'] as $item) {
+                $recipe->ingredients()->create([
+                    'ingredient_id' => $item['ingredient_id'],
+                    'unit_id'       => $item['unit_id'],
+                    'quantity'      => $item['quantity'],
+                ]);
+            }
+        }
 
         return redirect()->route('recipes.index')
             ->with('success', 'Resep berhasil diperbarui');
