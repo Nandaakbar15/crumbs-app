@@ -6,7 +6,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-[#3E2723]">Laporan Penjualan</h1>
-                <p class="text-[#8B6F47] mt-1">Pendapatan, HPP, laba kotor, dan margin dihitung otomatis dari batch produksi.</p>
+                <p class="text-[#8B6F47] mt-1">Pendapatan, food cost (45%), dan laba bersih dihitung otomatis dari batch produksi.</p>
             </div>
             <div class="flex gap-2">
                 <button onclick="exportExcel()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6B9E77] text-white font-semibold hover:opacity-90 transition">
@@ -48,6 +48,10 @@
         </div>
 
         <!-- Summary Cards -->
+        @php
+            $totalFoodCost = $summary['total_revenue'] * 0.45;
+            $totalLabaBersih = $summary['total_revenue'] - $totalFoodCost;
+        @endphp
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div class="bg-white rounded-lg border border-[#E8DCC8] p-4 shadow-sm">
                 <p class="text-[#8B6F47] text-sm font-medium">PENDAPATAN</p>
@@ -56,20 +60,20 @@
             </div>
 
             <div class="bg-white rounded-lg border border-[#E8DCC8] p-4 shadow-sm">
-                <p class="text-[#8B6F47] text-sm font-medium">TOTAL HPP</p>
-                <p class="text-2xl font-bold text-[#3E2723] mt-2">Rp {{ number_format($summary['total_hpp'], 0, ',', '.') }}</p>
-                <p class="text-xs text-[#8B6F47] mt-1">Biaya produksi</p>
+                <p class="text-[#8B6F47] text-sm font-medium">FOOD COST</p>
+                <p class="text-2xl font-bold text-[#3E2723] mt-2">Rp {{ number_format($totalFoodCost, 0, ',', '.') }}</p>
+                <p class="text-xs text-[#8B6F47] mt-1">45% dari pendapatan</p>
             </div>
 
             <div class="bg-white rounded-lg border border-[#E8DCC8] p-4 shadow-sm">
-                <p class="text-[#8B6F47] text-sm font-medium">LABA KOTOR</p>
-                <p class="text-2xl font-bold text-[#3E2723] mt-2">Rp {{ number_format($summary['total_profit'], 0, ',', '.') }}</p>
-                <p class="text-xs text-[#8B6F47] mt-1">Profit {{ number_format($summary['avg_margin'], 1) }}%</p>
+                <p class="text-[#8B6F47] text-sm font-medium">LABA BERSIH</p>
+                <p class="text-2xl font-bold text-[#6B9E77] mt-2">Rp {{ number_format($totalLabaBersih, 0, ',', '.') }}</p>
+                <p class="text-xs text-[#8B6F47] mt-1">Profit 55%</p>
             </div>
 
             <div class="bg-white rounded-lg border border-[#E8DCC8] p-4 shadow-sm">
                 <p class="text-[#8B6F47] text-sm font-medium">MARGIN</p>
-                <p class="text-2xl font-bold text-[#3E2723] mt-2">{{ number_format($summary['avg_margin'], 1) }}%</p>
+                <p class="text-2xl font-bold text-[#3E2723] mt-2">55.0%</p>
                 <p class="text-xs text-[#8B6F47] mt-1">Margin rata-rata</p>
             </div>
 
@@ -99,40 +103,41 @@
                                     <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Pcs Dijual</th>
                                     <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Pcs Tersisa</th>
                                     <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Pendapatan</th>
-                                    <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Total HPP</th>
-                                    <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Laba Kotor</th>
+                                    <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Food Cost (45%)</th>
+                                    <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Laba Bersih</th>
                                     <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Margin</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @php
-                                    $periodRevenue = 0;
-                                    $periodHPP = 0;
-                                    $periodProfit = 0;
+                                    $periodRevenue  = 0;
+                                    $periodFoodCost = 0;
+                                    $periodLaba     = 0;
                                 @endphp
                                 
                                 @foreach($period['batches'] as $batch)
                                     @php
-                                        $hpp = $batch->calculateTotalHPP();
-                                        $profit = $batch->calculateGrossProfit();
-                                        $margin = $batch->calculateMargin();
-                                        $unsold = $batch->getUnsoldQuantity();
-                                        
-                                        $periodRevenue += $batch->revenue;
-                                        $periodHPP += $hpp;
-                                        $periodProfit += $profit;
+                                        $rev      = (float) $batch->revenue;
+                                        $foodCost = $rev * 0.45;
+                                        $laba     = $rev - $foodCost;   // rev × 55%
+                                        $margin   = 55.0;               // selalu 55%
+                                        $unsold   = $batch->getUnsoldQuantity();
+
+                                        $periodRevenue  += $rev;
+                                        $periodFoodCost += $foodCost;
+                                        $periodLaba     += $laba;
                                     @endphp
                                     <tr class="border-b border-[#E8DCC8] hover:bg-[#FAF8F3] transition">
                                         <td class="px-3 py-2 text-[#3E2723]">{{ $batch->batch_code }}</td>
                                         <td class="px-3 py-2 text-[#3E2723]">{{ $batch->recipe->name }}</td>
-                                        <td class="px-3 py-2 text-right text-[#3E2723]">{{ $batch->quantity_sold }}</td>
-                                        <td class="px-3 py-2 text-right text-[#8B6F47]">{{ $unsold }}</td>
-                                        <td class="px-3 py-2 text-right text-[#6B9E77] font-medium">Rp {{ number_format($batch->revenue, 0, ',', '.') }}</td>
-                                        <td class="px-3 py-2 text-right text-[#3E2723]">Rp {{ number_format($hpp, 0, ',', '.') }}</td>
-                                        <td class="px-3 py-2 text-right font-medium" style="color: {{ $profit >= 0 ? '#6B9E77' : '#D84545' }}">
-                                            Rp {{ number_format($profit, 0, ',', '.') }}
+                                        <td class="px-3 py-2 text-right text-[#3E2723]">{{ (int) $batch->quantity_sold }}</td>
+                                        <td class="px-3 py-2 text-right text-[#8B6F47]">{{ (int) $unsold }}</td>
+                                        <td class="px-3 py-2 text-right text-[#6B9E77] font-medium">Rp {{ number_format($rev, 0, ',', '.') }}</td>
+                                        <td class="px-3 py-2 text-right text-[#D4A574]">Rp {{ number_format($foodCost, 0, ',', '.') }}</td>
+                                        <td class="px-3 py-2 text-right text-[#6B9E77] font-medium">
+                                            Rp {{ number_format($laba, 0, ',', '.') }}
                                         </td>
-                                        <td class="px-3 py-2 text-right text-[#3E2723] font-medium">{{ number_format($margin, 1) }}%</td>
+                                        <td class="px-3 py-2 text-right text-[#3E2723] font-medium">55%</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -140,13 +145,11 @@
                                 <tr class="border-t border-[#E8DCC8]">
                                     <td colspan="4" class="px-3 py-2 text-[#3E2723] font-semibold">Subtotal {{ $period['period'] }}</td>
                                     <td class="px-3 py-2 text-right text-[#6B9E77] font-bold">Rp {{ number_format($periodRevenue, 0, ',', '.') }}</td>
-                                    <td class="px-3 py-2 text-right text-[#3E2723] font-bold">Rp {{ number_format($periodHPP, 0, ',', '.') }}</td>
-                                    <td class="px-3 py-2 text-right font-bold" style="color: {{ $periodProfit >= 0 ? '#6B9E77' : '#D84545' }}">
-                                        Rp {{ number_format($periodProfit, 0, ',', '.') }}
+                                    <td class="px-3 py-2 text-right text-[#D4A574] font-bold">Rp {{ number_format($periodFoodCost, 0, ',', '.') }}</td>
+                                    <td class="px-3 py-2 text-right text-[#6B9E77] font-bold">
+                                        Rp {{ number_format($periodLaba, 0, ',', '.') }}
                                     </td>
-                                    <td class="px-3 py-2 text-right text-[#3E2723] font-bold">
-                                        {{ $periodRevenue > 0 ? number_format(($periodProfit / $periodRevenue) * 100, 1) : '0' }}%
-                                    </td>
+                                    <td class="px-3 py-2 text-right text-[#3E2723] font-bold">55%</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -172,23 +175,28 @@
                                 <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Pcs Dijual</th>
                                 <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Pcs Tersisa</th>
                                 <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Pendapatan</th>
-                                <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Total HPP</th>
-                                <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Laba Kotor</th>
+                                <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Food Cost (45%)</th>
+                                <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Laba Bersih</th>
                                 <th class="px-3 py-2 text-right text-[#3E2723] font-semibold">Margin</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($perProduct as $product)
+                                @php
+                                    $pRev      = (float) $product['revenue'];
+                                    $pFoodCost = $pRev * 0.45;
+                                    $pLaba     = $pRev - $pFoodCost;
+                                @endphp
                                 <tr class="border-b border-[#E8DCC8] hover:bg-[#FAF8F3] transition">
                                     <td class="px-3 py-2 text-[#3E2723] font-medium">{{ $product['recipe_name'] }}</td>
-                                    <td class="px-3 py-2 text-right text-[#3E2723]">{{ $product['quantity_sold'] }}</td>
-                                    <td class="px-3 py-2 text-right text-[#8B6F47]">{{ $product['quantity_unsold'] }}</td>
-                                    <td class="px-3 py-2 text-right text-[#6B9E77] font-medium">Rp {{ number_format($product['revenue'], 0, ',', '.') }}</td>
-                                    <td class="px-3 py-2 text-right text-[#3E2723]">Rp {{ number_format($product['total_hpp'], 0, ',', '.') }}</td>
-                                    <td class="px-3 py-2 text-right font-medium" style="color: {{ $product['gross_profit'] >= 0 ? '#6B9E77' : '#D84545' }}">
-                                        Rp {{ number_format($product['gross_profit'], 0, ',', '.') }}
+                                    <td class="px-3 py-2 text-right text-[#3E2723]">{{ (int) $product['quantity_sold'] }}</td>
+                                    <td class="px-3 py-2 text-right text-[#8B6F47]">{{ (int) $product['quantity_unsold'] }}</td>
+                                    <td class="px-3 py-2 text-right text-[#6B9E77] font-medium">Rp {{ number_format($pRev, 0, ',', '.') }}</td>
+                                    <td class="px-3 py-2 text-right text-[#D4A574]">Rp {{ number_format($pFoodCost, 0, ',', '.') }}</td>
+                                    <td class="px-3 py-2 text-right text-[#6B9E77] font-medium">
+                                        Rp {{ number_format($pLaba, 0, ',', '.') }}
                                     </td>
-                                    <td class="px-3 py-2 text-right text-[#3E2723] font-medium">{{ number_format($product['margin'], 1) }}%</td>
+                                    <td class="px-3 py-2 text-right text-[#3E2723] font-medium">55%</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -204,7 +212,6 @@
         }
 
         function exportExcel() {
-            // Temporary: Show alert (will implement Excel export in Phase 2)
             alert('Fitur unduh Excel akan segera tersedia. Gunakan cetak untuk menyimpan sebagai PDF.');
         }
     </script>

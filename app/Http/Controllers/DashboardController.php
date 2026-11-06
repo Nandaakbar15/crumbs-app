@@ -30,15 +30,29 @@ class DashboardController extends Controller
 
         // Get critical stocks
         $criticalStocks = Ingredient::where('is_active', true)
+            ->with(['baseUnit', 'currentUnit'])
             ->get()
             ->filter(fn($ingredient) => $ingredient->isCritical())
             ->take(5);
 
         // Get low stocks
         $lowStocks = Ingredient::where('is_active', true)
+            ->with(['baseUnit', 'currentUnit'])
             ->get()
             ->filter(fn($ingredient) => $ingredient->isLow() && !$ingredient->isCritical())
             ->take(5);
+
+        // Get safe stocks
+        $safeStocks = Ingredient::where('is_active', true)
+            ->with(['baseUnit', 'currentUnit'])
+            ->get()
+            ->filter(fn($ingredient) => !$ingredient->isLow())
+            ->take(5);
+
+        // Total ingredient counts by status
+        $allIngredients = Ingredient::where('is_active', true)->with(['baseUnit', 'currentUnit', 'prices'])->get();
+        $kritisCount  = $allIngredients->filter(fn($i) => $i->isCritical())->count();
+        $menipisCount = $allIngredients->filter(fn($i) => $i->isLow() && !$i->isCritical())->count();
 
         // Calculate totals
         $totalMaterialCost = $activeBatchesToday->sum(fn($batch) => $batch->getTotalMaterialCost());
@@ -78,6 +92,9 @@ class DashboardController extends Controller
             'activeBatchesList' => $activeBatchesList,
             'criticalStocks' => $criticalStocks,
             'lowStocks' => $lowStocks,
+            'safeStocks' => $safeStocks,
+            'kritisCount' => $kritisCount,
+            'menipisCount' => $menipisCount,
             'totalMaterialCost' => $totalMaterialCost,
             'totalWasteAmount' => $totalWasteAmount,
             'wasteQuantity' => $wasteQuantity,

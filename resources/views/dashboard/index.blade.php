@@ -69,8 +69,8 @@
                 <p class="text-xs font-medium text-[#8B6F47] uppercase tracking-wide">BAHAN MENIPIS</p>
                 <span class="text-lg">⚠️</span>
             </div>
-            <h3 class="text-2xl font-bold text-[#3E2723] mb-1">0</h3>
-            <p class="text-xs text-[#8B6F47]">0 Kritis - 0 rendah</p>
+            <h3 class="text-2xl font-bold text-[#3E2723] mb-1">{{ $kritisCount + $menipisCount }}</h3>
+            <p class="text-xs text-[#8B6F47]">{{ $kritisCount }} Kritis · {{ $menipisCount }} rendah</p>
         </div>
 
         <!-- Batch Bulan Ini -->
@@ -206,36 +206,48 @@
         <div class="bg-white rounded-xl border border-[#E8DCC8] p-6 shadow-sm">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-lg font-bold text-[#3E2723]">Peringatan Stok</h2>
-                <a href="{{ route('ingredients.index') }}" class="text-xs text-[#D4A574] hover:underline font-semibold">Lihat daftar belanja</a>
+                <a href="{{ route('ingredients.index') }}" class="text-xs text-[#D4A574] hover:underline font-semibold">Lihat stok bahan</a>
             </div>
             <div class="space-y-3">
-                @if ($criticalStocks->count() > 0 || $lowStocks->count() > 0)
-                    @forelse ($criticalStocks as $stock)
-                        <div class="flex items-center gap-3 p-3 rounded-lg bg-[#C85A54] bg-opacity-10 border border-[#C85A54]">
-                            <span class="text-lg">🔴</span>
-                            <div class="flex-1 text-sm">
-                                <p class="font-medium text-white">{{ $stock->name }}</p>
-                                <p class="text-xs text-slate-600 font-bold">Stok: {{ $stock->current_stock }} {{ $stock->currentUnit->code ?? 'unit' }}</p>
-                            </div>
+                {{-- KRITIS --}}
+                @foreach ($criticalStocks as $stock)
+                    @php $fmt = $stock->formatStock(); @endphp
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-[#C85A54] border border-[#C85A54]">
+                        <span class="text-white text-base">🔴</span>
+                        <div class="flex-1 text-sm">
+                            <p class="font-semibold text-white">{{ $stock->name }}</p>
+                            <p class="text-xs text-white opacity-90">Stok: {{ number_format($fmt['value'], 0) }} {{ $fmt['unit'] }} · KRITIS</p>
                         </div>
-                    @empty
-                        @forelse ($lowStocks as $stock)
-                            <div class="flex items-center gap-3 p-3 rounded-lg bg-[#F4C430] bg-opacity-10 border border-[#F4C430]">
-                                <span class="text-lg">⚠️</span>
-                                <div class="flex-1 text-sm">
-                                    <p class="font-medium text-[#3E2723]">{{ $stock->name }}</p>
-                                    <p class="text-xs text-[#8B6F47]">Stok: {{ $stock->current_stock }} {{ $stock->currentUnit->code ?? 'unit' }}</p>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="p-4 rounded-lg bg-[#6B9E77] bg-opacity-10 border border-[#6B9E77]">
-                                <p class="text-sm text-white font-medium">✓ Semua bahan dalam stok aman</p>
-                            </div>
-                        @endforelse
-                    @endforelse
-                @else
-                    <div class="p-4 rounded-lg bg-[#6B9E77] bg-opacity-10 border border-[#6B9E77]">
-                        <p class="text-sm text-white font-medium">✓ Semua bahan dalam stok aman</p>
+                    </div>
+                @endforeach
+
+                {{-- MENIPIS --}}
+                @foreach ($lowStocks as $stock)
+                    @php $fmt = $stock->formatStock(); @endphp
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-[#D4A030] border border-[#D4A030]">
+                        <span class="text-white text-base">⚠️</span>
+                        <div class="flex-1 text-sm">
+                            <p class="font-semibold text-white">{{ $stock->name }}</p>
+                            <p class="text-xs text-white opacity-90">Stok: {{ number_format($fmt['value'], 0) }} {{ $fmt['unit'] }} · MENIPIS</p>
+                        </div>
+                    </div>
+                @endforeach
+
+                {{-- AMAN --}}
+                @foreach ($safeStocks as $stock)
+                    @php $fmt = $stock->formatStock(); @endphp
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-[#6B9E77] border border-[#6B9E77]">
+                        <span class="text-white text-base">✓</span>
+                        <div class="flex-1 text-sm">
+                            <p class="font-semibold text-white">{{ $stock->name }}</p>
+                            <p class="text-xs text-white opacity-90">Stok: {{ number_format($fmt['value'], 0) }} {{ $fmt['unit'] }} · AMAN</p>
+                        </div>
+                    </div>
+                @endforeach
+
+                @if ($criticalStocks->count() === 0 && $lowStocks->count() === 0 && $safeStocks->count() === 0)
+                    <div class="p-4 rounded-lg bg-[#6B9E77] border border-[#6B9E77]">
+                        <p class="text-sm text-white font-medium">✓ Belum ada bahan ditambahkan</p>
                     </div>
                 @endif
             </div>

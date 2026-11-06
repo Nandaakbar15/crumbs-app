@@ -412,9 +412,9 @@
                     document.getElementById('modalTitle').textContent = 'Edit Resep';
                     document.querySelector('input[name="name"]').value = data.name;
                     document.querySelector('select[name="category"]').value = data.category || '';
-                    document.querySelector('input[name="yield_quantity"]').value = data.yield_quantity;
+                    document.querySelector('input[name="yield_quantity"]').value = Math.round(parseFloat(data.yield_quantity));
                     document.querySelector('select[name="yield_unit_id"]').value = data.yield_unit_id;
-                    document.querySelector('input[name="selling_price"]').value = data.selling_price;
+                    document.querySelector('input[name="selling_price"]').value = Math.round(parseFloat(data.selling_price));
                     document.querySelector('input[name="image_url"]').value = data.image_url || '';
 
                     // Update form action for edit
@@ -442,7 +442,7 @@
                                         </select>
                                     </td>
                                     <td class="px-3 py-2 border-b border-[#E8DCC8]">
-                                        <input type="number" name="ingredients[${ingredientCount}][quantity]" placeholder="0" step="1" value="${ing.quantity}" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm ingredient-quantity" onchange="calculateHPP()" oninput="calculateHPP()">
+                                        <input type="number" name="ingredients[${ingredientCount}][quantity]" placeholder="0" step="1" value="${Math.round(parseFloat(ing.quantity))}" class="w-full px-2 py-1 border border-[#E8DCC8] rounded text-sm ingredient-quantity" onchange="calculateHPP()" oninput="calculateHPP()">
                                     </td>
                                     <td class="px-3 py-2 border-b border-[#E8DCC8] text-center">
                                         <button type="button" onclick="removeIngredient(this)" class="text-red-500 hover:text-red-700 text-sm">✕</button>

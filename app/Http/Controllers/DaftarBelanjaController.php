@@ -89,15 +89,22 @@ class DaftarBelanjaController extends Controller
         $totalCost = 0;
 
         foreach ($criticalIngredients as $ingredient) {
-            // Jumlah yang perlu dibeli = selisih minimum - stok saat ini
-            $deficit = max(0, (float) $ingredient->minimum_threshold - (float) $ingredient->current_stock);
-            // Minimal beli = 1 unit dasar jika deficit = 0 tapi masih menipis
+            $latestPrice = $ingredient->prices->first();
+
+            // Satuan & harga beli asli (misal: 1000 gram / Rp 18.000)
+            $purchaseQty   = (float) ($latestPrice?->purchase_qty_input   ?? 1);   // 1000 gram
+            $purchasePrice = (float) ($latestPrice?->purchase_price_input ?? $latestPrice?->price_per_unit ?? 0); // Rp 18.000
+
+            // Jumlah yang dibutuhkan (deficit)
+            $deficit   = max(0, (float) $ingredient->minimum_threshold - (float) $ingredient->current_stock);
             $qtyNeeded = $deficit > 0 ? $deficit : (float) $ingredient->minimum_threshold;
 
-            $latestPrice = $ingredient->prices->first();
-            $estimatedPrice = $latestPrice ? (float) $latestPrice->price_per_unit : 0;
+            // Hitung berapa pack yang perlu dibeli (ceil — beli satuan penuh)
+            // Contoh: butuh 50g, satuan beli 1000g → beli 1 pack (1000g)
+            $packsNeeded   = $purchaseQty > 0 ? ceil($qtyNeeded / $purchaseQty) : 1;
+            $qtyToBuy      = $packsNeeded * $purchaseQty;   // gram yang benar-benar dibeli
+            $itemCost      = $packsNeeded * $purchasePrice; // total biaya pembelian
 
-            $itemCost = $qtyNeeded * $estimatedPrice;
             $totalCost += $itemCost;
 
             // Kumpulkan nama resep untuk notes item ini
@@ -108,15 +115,16 @@ class DaftarBelanjaController extends Controller
                 ->implode(', ');
 
             $shoppingList->items()->create([
-                'ingredient_id'           => $ingredient->id,
-                'quantity_needed'         => $qtyNeeded,
-                'unit_id'                 => $ingredient->base_unit_id,
-                'estimated_price_per_unit'=> $estimatedPrice,
-                'total_estimated_cost'    => $itemCost,
-                'supplier_id'             => null,
-                'notes'                   => collect(array_filter([
+                'ingredient_id'            => $ingredient->id,
+                'quantity_needed'          => $qtyToBuy,      // qty yang benar-benar dibeli (dalam gram)
+                'unit_id'                  => $ingredient->base_unit_id,
+                'estimated_price_per_unit' => $purchasePrice, // harga per pack
+                'total_estimated_cost'     => $itemCost,
+                'supplier_id'              => null,
+                'notes'                    => collect(array_filter([
                     $recipeNames ? "Dipakai di: {$recipeNames}" : null,
                     $latestPrice?->store_name ? "Beli di: {$latestPrice->store_name}" : null,
+                    "Beli {$packsNeeded}× {$purchaseQty} gram",
                 ]))->implode(' · ') ?: null,
             ]);
         }

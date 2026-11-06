@@ -54,7 +54,7 @@
                     <!-- Quantity Input -->
                     <div>
                         <label class="block text-sm font-medium text-[#3E2723] mb-2">Jumlah produk</label>
-                        <input type="number" name="quantity" id="quantityInput" placeholder="0" step="0.01" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
+                        <input type="number" name="quantity" id="quantityInput" placeholder="0" step="1" required class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
                     </div>
 
                     <!-- Submit Button -->
@@ -86,8 +86,8 @@
 
                             <div class="flex items-center gap-3 flex-wrap text-sm">
                                 <span class="text-[#3E2723] font-medium">Terjual:</span>
-                                <input type="number" id="qty_{{ $batch->id }}" value="{{ $batch->quantity_sold ?? 0 }}" step="0.01" class="w-20 px-2 py-1 border border-[#E8DCC8] rounded text-center" />
-                                <span class="text-[#8B6F47]">dari {{ $batch->produced_quantity }} pcs</span>
+                                <input type="number" id="qty_{{ $batch->id }}" value="{{ (int) $batch->quantity_sold }}" step="1" class="w-20 px-2 py-1 border border-[#E8DCC8] rounded text-center" />
+                                <span class="text-[#8B6F47]">dari {{ number_format($batch->produced_quantity, 0) }} pcs</span>
                                 
                                 <button onclick="recordSale({{ $batch->id }})" class="px-3 py-1 rounded-lg bg-[#6B9E77] text-white text-xs font-semibold hover:opacity-90 transition">Simpan</button>
                                 <button onclick="deleteBatch({{ $batch->id }}, '{{ addslashes($batch->batch_code) }}')" class="px-3 py-1 rounded-lg bg-[#C85A54] text-white text-xs font-semibold hover:opacity-90 transition">Hapus</button>
@@ -405,7 +405,7 @@
                     html += `
                         <tr class="border-b border-[#E8DCC8]">
                             <td class="px-2 py-2 text-[#3E2723]">${batch.recipe_name}</td>
-                            <td class="text-right px-2 py-2 text-[#3E2723]">${parseFloat(batch.quantity_sold).toFixed(2)}</td>
+                            <td class="text-right px-2 py-2 text-[#3E2723]">${Math.round(parseFloat(batch.quantity_sold))}</td>
                             ${data.metrics.includes('revenue') ? `<td class="text-right px-2 py-2 text-[#3E2723]">Rp ${parseFloat(batch.revenue).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>` : ''}
                             ${data.metrics.includes('total_hpp') ? `<td class="text-right px-2 py-2 text-[#3E2723]">Rp ${parseFloat(batch.total_hpp).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>` : ''}
                             ${data.metrics.includes('gross_profit') ? `<td class="text-right px-2 py-2 text-[#3E2723]">Rp ${parseFloat(batch.gross_profit).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>` : ''}

@@ -67,7 +67,6 @@
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Stok</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Batas Min</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Harga Beli</th>
-                        <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Biaya / satuan</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Status</th>
                         <th class="px-6 py-4 text-left text-sm font-semibold text-[#3E2723]">Aksi</th>
                     </tr>
@@ -91,11 +90,17 @@
                                 <p class="text-xs text-[#8B6F47]">{{ $threshold['unit'] }}</p>
                             </td>
                             <td class="px-6 py-4">
-                                <p class="font-medium text-[#3E2723]">Rp {{ number_format($ingredient->getLatestPrice()?->price_per_unit ?? 0, 0, ',', '.') }}</p>
-                                <p class="text-xs text-[#8B6F47]">per {{ $ingredient->baseUnit->code ?? 'unit' }}</p>
-                            </td>
-                            <td class="px-6 py-4">
-                                <p class="font-medium text-[#D4A574]">Rp {{ number_format(($ingredient->getLatestPrice()?->price_per_unit ?? 0) / max($ingredient->current_stock, 1), 0, ',', '.') }}</p>
+                                @php
+                                    $latestPr   = $ingredient->getLatestPrice();
+                                    $dispPrice  = $latestPr?->purchase_price_input ?? $latestPr?->price_per_unit ?? 0;
+                                    $dispQty    = (int) ($latestPr?->purchase_qty_input ?? 1);
+                                    $dispUnit   = $ingredient->baseUnit?->code ?? 'unit';
+                                    $dispLabel  = ($dispQty == 1)
+                                        ? "per {$dispUnit}"
+                                        : "per {$dispQty} {$dispUnit}";
+                                @endphp
+                                <p class="font-medium text-[#3E2723]">Rp {{ number_format($dispPrice, 0, ',', '.') }}</p>
+                                <p class="text-xs text-[#8B6F47]">{{ $dispLabel }}</p>
                             </td>
                             <td class="px-6 py-4">
                                 @if ($ingredient->isCritical())
@@ -121,7 +126,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-8 text-center text-[#8B6F47]">
+                            <td colspan="7" class="px-6 py-8 text-center text-[#8B6F47]">
                                 <p>Belum ada bahan</p>
                             </td>
                         </tr>
@@ -223,16 +228,6 @@
                             class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg bg-[#FAF8F3] focus:outline-none text-sm text-[#8B6F47]" readonly>
                         <p class="text-xs text-[#8B6F47] mt-1">(satuan dasar)</p>
                     </div>
-                </div>
-
-                <!-- Metode Bayar -->
-                <div>
-                    <label class="block text-sm font-medium text-[#3E2723] mb-2">Metode Bayar <span class="text-xs text-[#8B6F47]">(opsional)</span></label>
-                    <select name="supplier_name" class="w-full px-3 py-2 border border-[#E8DCC8] rounded-lg focus:outline-none focus:border-[#D4A574]">
-                        <option value="">-- Pilih Metode --</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Cashless">Cashless</option>
-                    </select>
                 </div>
 
                 <!-- Supplier / Tempat Beli -->
@@ -461,7 +456,7 @@
                     // Populate category dropdown
                     const catSelect = document.querySelector('select[name="category"]');
                     if (catSelect) catSelect.value = data.category ?? '';
-                    document.querySelector('input[name="price_per_unit"]').value = Math.round(parseFloat(data.price_per_unit));
+                    document.querySelector('input[name="price_per_unit"]').value = parseFloat(data.price_per_unit);
                     // Restore purchase_quantity (jumlah per pembelian)
                     if (document.getElementById('purchaseQty')) {
                         document.getElementById('purchaseQty').value = Math.round(parseFloat(data.purchase_quantity ?? 1));
@@ -470,9 +465,6 @@
                     document.querySelector('input[name="minimum_threshold"]').value = Math.round(parseFloat(data.minimum_threshold));
                     document.querySelector('select[name="current_unit_id"]').value = data.current_unit_id;
 
-                    if (document.querySelector('select[name="supplier_name"]')) {
-                        document.querySelector('select[name="supplier_name"]').value = data.supplier_name ?? '';
-                    }
                     if (document.querySelector('input[name="store_name"]')) {
                         document.querySelector('input[name="store_name"]').value = data.store_name ?? '';
                     }

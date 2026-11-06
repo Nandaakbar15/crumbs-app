@@ -36,7 +36,6 @@ class IngredientController extends Controller
             'price_per_unit' => 'required|numeric|min:0',
             'current_stock' => 'required|numeric|min:0',
             'minimum_threshold' => 'required|numeric|min:0',
-            'supplier_name' => 'nullable|in:Cash,Cashless',
             'store_name' => 'nullable|string|max:255',
         ]);
 
@@ -144,7 +143,6 @@ class IngredientController extends Controller
             'current_stock' => 'required|numeric|min:0',
             'minimum_threshold' => 'required|numeric|min:0',
             'price_per_unit' => 'required|numeric|min:0',
-            'supplier_name' => 'nullable|in:Cash,Cashless',
             'store_name' => 'nullable|string|max:255',
         ]);
 
@@ -252,7 +250,6 @@ class IngredientController extends Controller
             'quantity' => 'required|numeric|min:0.01',
             'unit_id' => 'required|exists:units,id',
             'price_per_unit' => 'nullable|numeric|min:0',
-            'supplier_name' => 'nullable|in:Cash,Cashless',
             'store_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
         ]);

@@ -176,17 +176,31 @@
                                         <p class="text-xs text-[#8B6F47]">{{ $item->ingredient->currentUnit->code ?? 'unit' }}</p>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="font-medium text-[#3E2723]">{{ number_format($item->quantity_needed, 0) }}</p>
-                                        <p class="text-xs text-[#8B6F47]">{{ $item->unit->code ?? 'unit' }}</p>
+                                        @php
+                                            $latestPr  = $item->ingredient->getLatestPrice();
+                                            $buyQty    = (int) ($latestPr?->purchase_qty_input ?? 1);
+                                            $buyPrice  = (float) ($latestPr?->purchase_price_input ?? $latestPr?->price_per_unit ?? 0);
+                                            $buyUnit   = $item->ingredient->baseUnit?->code ?? 'unit';
+                                        @endphp
+                                        <p class="font-medium text-[#3E2723]">{{ number_format($item->quantity_needed, 0) }} {{ $buyUnit }}</p>
+                                        <p class="text-xs text-[#8B6F47]">per {{ $buyQty }} {{ $buyUnit }}</p>
                                     </td>
                                     <td class="px-6 py-4">
                                         <input type="checkbox" class="w-4 h-4 rounded border-[#D4A574] text-[#D4A574] focus:ring-0 item-checkbox" data-list="{{ $list->id }}">
                                     </td>
                                     <td class="px-6 py-4 text-sm text-[#D4A574] font-medium">
-                                        Rp {{ number_format($item->estimated_price_per_unit, 0, ',', '.') }}
+                                        Rp {{ number_format($buyPrice, 0, ',', '.') }} / {{ $buyQty }} {{ $buyUnit }}
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="font-medium text-[#3E2723]">Rp {{ number_format($item->total_estimated_cost, 0, ',', '.') }}</p>
+                                        @php
+                                            $latPr2    = $item->ingredient->getLatestPrice();
+                                            $buyQty2   = max(1, (int) ($latPr2?->purchase_qty_input ?? 1));
+                                            $buyPrice2 = (float) ($latPr2?->purchase_price_input ?? $latPr2?->price_per_unit ?? 0);
+                                            $qtyNeeded2 = (float) $item->quantity_needed;
+                                            $packs2     = $buyQty2 > 0 ? ceil($qtyNeeded2 / $buyQty2) : 1;
+                                            $realCost   = $packs2 * $buyPrice2;
+                                        @endphp
+                                        <p class="font-medium text-[#3E2723]">Rp {{ number_format($realCost, 0, ',', '.') }}</p>
                                     </td>
                                 </tr>
                             @endforeach
