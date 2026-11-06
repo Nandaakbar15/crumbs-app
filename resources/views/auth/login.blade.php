@@ -72,13 +72,13 @@
                 </form>
 
                 <!-- Demo Credentials -->
-                <div class="mt-6 pt-6 border-t border-[#E8DCC8]">
+                {{-- <div class="mt-6 pt-6 border-t border-[#E8DCC8]">
                     <p class="text-xs text-center text-[#8B6F47] mb-2">Demo Credentials:</p>
                     <div class="bg-[#FAF8F3] p-3 rounded text-xs space-y-1">
                         <p class="text-[#3E2723]"><strong>Email:</strong> admin@crumbs.test</p>
                         <p class="text-[#3E2723]"><strong>Password:</strong> password</p>
                     </div>
-                </div>
+                </div> --}}
             </div>
 
             <!-- Footer -->

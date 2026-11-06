@@ -202,7 +202,7 @@
             @endif
         </div>
 
-        <!-- Peringatan Stok -->
+        <!-- 1 -->
         <div class="bg-white rounded-xl border border-[#E8DCC8] p-6 shadow-sm">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-lg font-bold text-[#3E2723]">Peringatan Stok</h2>
@@ -240,7 +240,7 @@
                         <span class="text-white text-base">✓</span>
                         <div class="flex-1 text-sm">
                             <p class="font-semibold text-white">{{ $stock->name }}</p>
-                            <p class="text-xs text-white opacity-90">Stok: {{ number_format($fmt['value'], 0) }} {{ $fmt['unit'] }} · AMAN</p>
+                            <p class="text-xs text-white opacity-90">Stok: {{ number_format($fmt['value'], 0) }}</p>
                         </div>
                     </div>
                 @endforeach
